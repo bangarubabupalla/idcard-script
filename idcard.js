@@ -1,65 +1,57 @@
-/* =========================================================
-   ID CARD SYSTEM — FINAL VERSION
-   - Auto-download working in Blogger
-   - Google Sheets + Drive update working
-   - No duplicate code
-   - No popup blocking
-========================================================= */
-
+/* ============================================
+   CONFIG
+============================================ */
 const GAS_URL =
   "https://script.google.com/macros/s/AKfycbxgBHMWzOMlgOucyYEQFXWFoQ3oEMwpsIZjJHNx_w9cIIcU7TBe_icRyBsbIMO_qrf6/exec";
 
-/* ---------------- Backgrounds ---------------- */
+/* Background images */
 const BG_NIE = "https://iili.io/f9vffEv.png";
 const BG_NIST = "https://iili.io/f9vfC2p.png";
 const BG_OLD_NIE = "https://iili.io/fHuJnBS.png";
 const BG_OLD_NIST = "https://iili.io/fHuqfSI.png";
 
-/* ---------------- Photo Positions ---------------- */
+/* PHOTO POSITIONS */
 const photoNew = { x: 200, y: 220, width: 240, height: 240 };
 const photoOld = { x: 412, y: 266, width: 188, height: 240 };
 
-/* ---------------- State ---------------- */
 let uploadedPhoto = null;
 let isNewPhoto = false;
 
-function q(id) { return document.getElementById(id); }
+/* ============================================
+   UTILS
+============================================ */
+function q(id) {
+  return document.getElementById(id);
+}
 
-/* =========================================================
-   CHECK ROLL
-========================================================= */
 function checkRollExists(roll, cb) {
   fetch(GAS_URL + "?roll=" + encodeURIComponent(roll))
-    .then(r => r.json())
-    .then(j => cb(j.status === "found"))
+    .then((r) => r.json())
+    .then((j) => cb(j.status === "found"))
     .catch(() => cb(false));
 }
 
-/* =========================================================
-   FORM DATA
-========================================================= */
 function getData() {
   const college = q("collegeSelect").value;
-
   return {
     college,
     name: q("name").value.trim(),
     roll: q("roll").value.trim(),
     course:
-      (college === "OLD_NIE" || college === "OLD_NIST")
+      college === "OLD_NIE" || college === "OLD_NIST"
         ? q("courseOld").value
         : q("course").value,
     blood: q("blood").value.trim(),
     branch: q("branch").value.trim(),
     contact: q("contact").value.trim(),
     parentName: q("parentName").value.trim(),
-    parentContact: q("parentContact").value.trim()
+    parentContact: q("parentContact").value.trim(),
   };
 }
 
-/* =========================================================
+/* ============================================
    DRAW CARD
-========================================================= */
+============================================ */
 function drawCard() {
   const canvas = q("idCanvas");
   const ctx = canvas.getContext("2d");
@@ -79,7 +71,10 @@ function drawCard() {
   bgImg.crossOrigin = "anonymous";
 
   bgImg.onload = () => {
-    const scale = Math.max(canvas.width / bgImg.width, canvas.height / bgImg.height);
+    const scale = Math.max(
+      canvas.width / bgImg.width,
+      canvas.height / bgImg.height
+    );
     const sw = canvas.width / scale;
     const sh = canvas.height / scale;
     const sx = (bgImg.width - sw) / 2;
@@ -93,28 +88,60 @@ function drawCard() {
       course: { x: 170, y: 607, font: "bold 30px Segoe UI", color: "#EB490E" },
       branch: { x: 180, y: 655, font: "bold 30px Segoe UI", color: "#EB490E" },
       contact: { x: 255, y: 700, font: "bold 30px Segoe UI", color: "#EB490E" },
-      parentName: { x: 262, y: 752, font: "bold 30px Segoe UI", color: "#EB490E" },
-      parentContact: { x: 365, y: 802, font: "bold 32px Segoe UI", color: "#EB490E" }
+      parentName: {
+        x: 262,
+        y: 752,
+        font: "bold 30px Segoe UI",
+        color: "#EB490E",
+      },
+      parentContact: {
+        x: 365,
+        y: 802,
+        font: "bold 32px Segoe UI",
+        color: "#EB490E",
+      },
     };
 
     const layoutOld = {
       roll: { x: 170, y: 331, font: "bold 32px Segoe UI", color: "#1B3A8A" },
       course: { x: 150, y: 373, font: "bold 32px Segoe UI", color: "#1B3A8A" },
       blood: { x: 220, y: 416, font: "bold 32px Segoe UI", color: "#1B3A8A" },
-      name: { center: true, y: 590, font: "bold 37px Segoe UI", color: "#F02424" },
-      parentName: { x: 250, y: 665, font: "bold 32px Segoe UI", color: "#1B3A8A" },
-      contact: { x: 240, y: 721, font: "bold 32px Segoe UI", color: "#1B3A8A" },
-      parentContact: { x: 360, y: 772, font: "bold 32px Segoe UI", color: "#1B3A8A" }
+      name: {
+        center: true,
+        y: 590,
+        font: "bold 37px Segoe UI",
+        color: "#F02424",
+      },
+      parentName: {
+        x: 250,
+        y: 665,
+        font: "bold 32px Segoe UI",
+        color: "#1B3A8A",
+      },
+      contact: {
+        x: 240,
+        y: 721,
+        font: "bold 32px Segoe UI",
+        color: "#1B3A8A",
+      },
+      parentContact: {
+        x: 360,
+        y: 772,
+        font: "bold 32px Segoe UI",
+        color: "#1B3A8A",
+      },
     };
 
-    const layout = (d.college === "OLD_NIE" || d.college === "OLD_NIST")
-      ? layoutOld
-      : layoutDefault;
+    const layout =
+      d.college === "OLD_NIE" || d.college === "OLD_NIST"
+        ? layoutOld
+        : layoutDefault;
 
-    Object.keys(layout).forEach(k => {
-      const f = layout[k];
-      const val = d[k];
+    Object.keys(layout).forEach((key) => {
+      const f = layout[key];
+      const val = d[key];
       if (!val) return;
+
       ctx.font = f.font;
       ctx.fillStyle = f.color;
 
@@ -127,27 +154,28 @@ function drawCard() {
       }
     });
 
-    /* Draw photo */
     if (uploadedPhoto) {
-      const p = (d.college === "OLD_NIE" || d.college === "OLD_NIST")
-        ? photoOld
-        : photoNew;
+      const p =
+        d.college === "OLD_NIE" || d.college === "OLD_NIST"
+          ? photoOld
+          : photoNew;
 
       ctx.save();
       ctx.beginPath();
       ctx.rect(p.x, p.y, p.width, p.height);
       ctx.clip();
 
-      const iw = uploadedPhoto.width;
-      const ih = uploadedPhoto.height;
-      const scaleP = Math.max(p.width / iw, p.height / ih);
+      const iw = uploadedPhoto.width,
+        ih = uploadedPhoto.height;
+      const boxW = p.width,
+        boxH = p.height;
+      const scale = Math.max(boxW / iw, boxH / ih);
+      const sw = boxW / scale,
+        sh = boxH / scale;
+      const sx = (iw - sw) / 2,
+        sy = (ih - sh) / 2;
 
-      const sw = p.width / scaleP;
-      const sh = p.height / scaleP;
-      const sx = (iw - sw) / 2;
-      const sy = (ih - sh) / 2;
-
-      ctx.drawImage(uploadedPhoto, sx, sy, sw, sh, p.x, p.y, p.width, p.height);
+      ctx.drawImage(uploadedPhoto, sx, sy, sw, sh, p.x, p.y, boxW, boxH);
       ctx.restore();
     }
   };
@@ -155,80 +183,79 @@ function drawCard() {
   bgImg.src = bg;
 }
 
-/* =========================================================
-   IMAGE TO BASE64
-========================================================= */
+/* ============================================
+   CONVERT TO BASE64
+============================================ */
 function getBase64(img) {
   const c = document.createElement("canvas");
   c.width = img.width;
   c.height = img.height;
-  c.getContext("2d").drawImage(img, 0, 0);
+
+  const x = c.getContext("2d");
+  x.drawImage(img, 0, 0);
+
   return c.toDataURL("image/png");
 }
 
-/* =========================================================
-   FIRE DOWNLOAD EVENT FOR BLOGGER
-========================================================= */
+/* ============================================
+   BLOGGER-SAFE PHOTO DOWNLOAD (IFRAME)
+============================================ */
 function triggerPhotoDownload(dataUrl, roll) {
-    const fileName = roll + "_photo.png";
+  const f = document.getElementById("downFrame");
+  const file = roll + "_photo.png";
 
-    // Force download via iframe (Blogger-safe)
-    const iframe = document.getElementById("downFrame");
+  const html = `
+  <html><body>
+    <a id="dl" href="${dataUrl}" download="${file}"></a>
+    <script>
+      document.getElementById("dl").click();
+    <\/script>
+  </body></html>`;
 
-    const html = `
-        <html><body>
-            <a id="dl" href="${dataUrl}" download="${fileName}"></a>
-            <script>
-                document.getElementById('dl').click();
-            <\/script>
-        </body></html>
-    `;
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
 
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-
-    iframe.src = url; // Forces download silently
+  f.src = url;
 }
 
-/* =========================================================
+/* ============================================
    SAVE TO GOOGLE SHEETS + DRIVE
-========================================================= */
+============================================ */
 function saveToSheet(photoBase64) {
   const data = getData();
   data.photoBase64 = photoBase64 || "";
 
   fetch(GAS_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data)
-  }).catch(() => {});
+    body: JSON.stringify(data),
+  })
+    .then(() => console.log("Saved"))
+    .catch(() => console.warn("no-cors but ok"));
 }
 
-/* =========================================================
-   INITIALIZE
-========================================================= */
+/* ============================================
+   INITIALIZER
+============================================ */
 function initIDCardGenerator() {
-
-  /* Roll number */
   q("roll").addEventListener("input", function () {
     let r = this.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
     this.value = r.slice(0, 13);
 
-    if (!r) return q("fetchBtn").style.display = "none";
+    if (!r) return (q("fetchBtn").style.display = "none");
 
-    checkRollExists(r, exists => {
+    checkRollExists(r, (exists) => {
       q("fetchBtn").style.display = exists ? "block" : "none";
     });
   });
 
-  /* Number fields */
-  q("contact").addEventListener("input", () => q("contact").value =
-    q("contact").value.replace(/\D/g, "").slice(0, 10));
-  q("parentContact").addEventListener("input", () => q("parentContact").value =
-    q("parentContact").value.replace(/\D/g, "").slice(0, 10));
+  q("contact").addEventListener("input", function () {
+    this.value = this.value.replace(/\D/g, "").slice(0, 10);
+  });
+  q("parentContact").addEventListener("input", function () {
+    this.value = this.value.replace(/\D/g, "").slice(0, 10);
+  });
 
-  /* Photo upload */
-  q("photoInput").addEventListener("change", e => {
+  q("photoInput").addEventListener("change", (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -241,76 +268,127 @@ function initIDCardGenerator() {
     img.src = URL.createObjectURL(file);
   });
 
-  /* College switch */
   q("collegeSelect").addEventListener("change", () => {
     const c = q("collegeSelect").value;
 
-    q("branch").style.display = (c === "OLD_NIE" || c === "OLD_NIST")
-      ? "none" : "block";
-
-    q("blood").style.display = (c === "OLD_NIE" || c === "OLD_NIST")
-      ? "block" : "none";
-
-    q("course").style.display = (c === "OLD_NIE" || c === "OLD_NIST")
-      ? "none" : "block";
-
-    q("courseOld").style.display = (c === "OLD_NIE" || c === "OLD_NIST")
-      ? "block" : "none";
+    q("branch").style.display =
+      c === "OLD_NIE" || c === "OLD_NIST" ? "none" : "block";
+    q("blood").style.display =
+      c === "OLD_NIE" || c === "OLD_NIST" ? "block" : "none";
+    q("course").style.display =
+      c === "OLD_NIE" || c === "OLD_NIST" ? "none" : "block";
+    q("courseOld").style.display =
+      c === "OLD_NIE" || c === "OLD_NIST" ? "block" : "none";
 
     drawCard();
   });
 
-  /* =========================================================
-     GENERATE — draw → save → auto-download (Blogger-safe)
-  ========================================================= */
-document.getElementById("generateBtn").addEventListener("click", () => {
+  /* GENERATE BUTTON */
+  q("generateBtn").addEventListener("click", () => {
+    drawCard();
+
+    setTimeout(() => {
+      let photoData = "";
+      let downloadData = "";
+
+      if (uploadedPhoto && uploadedPhoto.src.startsWith("blob:")) {
+        photoData = getBase64(uploadedPhoto);
+        downloadData = photoData;
+      }
+
+      saveToSheet(photoData);
+
+      if (downloadData) {
+        const roll = q("roll").value.trim() || "IDCARD";
+        triggerPhotoDownload(downloadData, roll);
+      }
+    }, 300);
+  });
+
+  /* PRINT */
+  q("printBtn").addEventListener("click", () => {
+    drawCard();
+    setTimeout(() => {
+      const img = q("idCanvas").toDataURL("image/png");
+      const win = window.open();
+      win.document.write(`
+        <img id="p" src="${img}" style="width:100%">
+        <script>
+          p.onload = function(){ window.print(); setTimeout(()=>window.close(),500); };
+        <\/script>
+      `);
+    }, 300);
+  });
+
+  /* PNG */
+  q("downloadPngBtn").addEventListener("click", () => {
+    drawCard();
+    setTimeout(() => {
+      const a = q("dlink");
+      a.href = q("idCanvas").toDataURL("image/png");
+      a.download = (q("roll").value || "IDCARD") + ".png";
+      a.click();
+    }, 250);
+  });
+
+  /* PDF */
+  q("downloadPdfBtn").addEventListener("click", () => {
+    drawCard();
+    setTimeout(() => {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF("p", "pt", "a4");
+      const img = q("idCanvas").toDataURL("image/png");
+
+      const pw = pdf.internal.pageSize.getWidth() - 80;
+      const ph = pdf.internal.pageSize.getHeight() - 80;
+      const scale = Math.min(pw / 638, ph / 1016);
+
+      const w = 638 * scale;
+      const h = 1016 * scale;
+      const x = (pdf.internal.pageSize.getWidth() - w) / 2;
+
+      pdf.addImage(img, "PNG", x, 40, w, h);
+      pdf.save((q("roll").value || "IDCARD") + ".pdf");
+    }, 350);
+  });
+
+  /* RESET */
+  q("resetBtn").addEventListener("click", () => {
+    document
+      .querySelectorAll("#idcard-widget input")
+      .forEach((i) => (i.value = ""));
+
+    uploadedPhoto = null;
+    isNewPhoto = false;
+    drawCard();
+  });
+
   drawCard();
-
-  setTimeout(() => {
-
-    let photoData = "";
-    let downloadData = "";
-
-    // Only new uploads have blob URL
-    if (uploadedPhoto && uploadedPhoto.src.startsWith("blob:")) {
-      photoData = getBase64(uploadedPhoto);
-      downloadData = photoData;
-    }
-
-    // Save to Google Sheet + Drive
-    saveToSheet(photoData);
-
-    // ⭐ FIRE SPECIAL EVENT FOR BLOGGER ⭐
-    if (downloadData) {
-    const roll = document.getElementById("roll").value.trim() || "IDCARD";
-    triggerPhotoDownload(downloadData, roll);
 }
 
-/* =========================================================
-   FETCH RECORD
-========================================================= */
+window.initIDCardGenerator = initIDCardGenerator;
+
+/* FETCH EXISTING RECORD */
 function fetchRecord() {
   const roll = q("roll").value.trim();
   if (!roll) return alert("Enter Roll Number");
 
   fetch(GAS_URL + "?roll=" + encodeURIComponent(roll))
-    .then(r => r.json())
-    .then(data => {
+    .then((r) => r.json())
+    .then((data) => {
       if (data.status !== "found") return alert("Not found");
 
-      q("name").value = data.name;
-      q("contact").value = data.contact;
-      q("parentName").value = data.parentName;
-      q("parentContact").value = data.parentContact;
-      q("branch").value = data.branch;
-      q("blood").value = data.blood;
-
-      q("collegeSelect").value = data.college;
+      q("name").value = data.name || "";
+      q("contact").value = data.contact || "";
+      q("parentName").value = data.parentName || "";
+      q("parentContact").value = data.parentContact || "";
+      q("branch").value = data.branch || "";
+      q("blood").value = data.blood || "";
+      q("collegeSelect").value = data.college || "NIE";
 
       if (data.college === "OLD_NIE" || data.college === "OLD_NIST")
         q("courseOld").value = data.course;
-      else
-        q("course").value = data.course;
+      else q("course").value = data.course;
 
       if (data.photo) {
         const img = new Image();
@@ -321,12 +399,12 @@ function fetchRecord() {
           drawCard();
         };
         img.src = data.photo;
+      } else {
+        uploadedPhoto = null;
+        isNewPhoto = false;
+        drawCard();
       }
 
       q("fetchBtn").style.display = "block";
-      drawCard();
     });
 }
-
-/* expose */
-window.initIDCardGenerator = initIDCardGenerator;
