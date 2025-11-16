@@ -15,23 +15,24 @@ const photoNew = { x: 200, y: 220, width: 240, height: 240 };
 const photoOld = { x: 412, y: 266, width: 188, height: 240 };
 
 let uploadedPhoto = null;
+let isNewPhoto = false;
 
 /* ============================================
    CHECK IF ROLL EXISTS
 ============================================ */
 function checkRollExists(roll, cb) {
   fetch(GAS_URL + "?roll=" + encodeURIComponent(roll))
-    .then((r) => r.json())
-    .then((j) => cb(j.status === "found"))
+    .then(r => r.json())
+    .then(j => cb(j.status === "found"))
     .catch(() => cb(false));
 }
-
 
 /* ============================================
    GET FORM DATA
 ============================================ */
 function getData() {
   const college = document.getElementById("collegeSelect").value;
+
   return {
     college,
     name: document.getElementById("name").value,
@@ -49,7 +50,7 @@ function getData() {
 }
 
 /* ============================================
-   DRAW CARD CANVAS
+   DRAW CARD
 ============================================ */
 function drawCard() {
   const canvas = document.getElementById("idCanvas");
@@ -68,11 +69,9 @@ function drawCard() {
 
   const bgImg = new Image();
   bgImg.crossOrigin = "anonymous";
-  bgImg.onload = function () {
-    const scale = Math.max(
-      canvas.width / bgImg.width,
-      canvas.height / bgImg.height
-    );
+
+  bgImg.onload = () => {
+    const scale = Math.max(canvas.width / bgImg.width, canvas.height / bgImg.height);
     const sw = canvas.width / scale;
     const sh = canvas.height / scale;
     const sx = (bgImg.width - sw) / 2;
@@ -80,55 +79,24 @@ function drawCard() {
 
     ctx.drawImage(bgImg, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
-    /* TEXT LAYOUTS */
     const layoutDefault = {
       name: { x: 140, y: 512, font: "bold 34px Segoe UI", color: "#EB490E" },
       roll: { x: 250, y: 559, font: "bold 30px Segoe UI", color: "#EB490E" },
       course: { x: 170, y: 607, font: "bold 30px Segoe UI", color: "#EB490E" },
       branch: { x: 180, y: 655, font: "bold 30px Segoe UI", color: "#EB490E" },
       contact: { x: 255, y: 700, font: "bold 30px Segoe UI", color: "#EB490E" },
-      parentName: {
-        x: 262,
-        y: 752,
-        font: "bold 30px Segoe UI",
-        color: "#EB490E"
-      },
-      parentContact: {
-        x: 365,
-        y: 802,
-        font: "bold 32px Segoe UI",
-        color: "#EB490E"
-      }
+      parentName: { x: 262, y: 752, font: "bold 30px Segoe UI", color: "#EB490E" },
+      parentContact: { x: 365, y: 802, font: "bold 32px Segoe UI", color: "#EB490E" }
     };
 
     const layoutOld = {
       roll: { x: 170, y: 331, font: "bold 32px Segoe UI", color: "#1B3A8A" },
       course: { x: 150, y: 373, font: "bold 32px Segoe UI", color: "#1B3A8A" },
       blood: { x: 220, y: 416, font: "bold 32px Segoe UI", color: "#1B3A8A" },
-      name: {
-        center: true,
-        y: 590,
-        font: "bold 37px Segoe UI",
-        color: "#F02424"
-      },
-      parentName: {
-        x: 250,
-        y: 665,
-        font: "bold 32px Segoe UI",
-        color: "#1B3A8A"
-      },
-      contact: {
-        x: 240,
-        y: 721,
-        font: "bold 32px Segoe UI",
-        color: "#1B3A8A"
-      },
-      parentContact: {
-        x: 360,
-        y: 772,
-        font: "bold 32px Segoe UI",
-        color: "#1B3A8A"
-      }
+      name: { center: true, y: 590, font: "bold 37px Segoe UI", color: "#F02424" },
+      parentName: { x: 250, y: 665, font: "bold 32px Segoe UI", color: "#1B3A8A" },
+      contact: { x: 240, y: 721, font: "bold 32px Segoe UI", color: "#1B3A8A" },
+      parentContact: { x: 360, y: 772, font: "bold 32px Segoe UI", color: "#1B3A8A" }
     };
 
     const layout =
@@ -136,8 +104,7 @@ function drawCard() {
         ? layoutOld
         : layoutDefault;
 
-    /* DRAW TEXT */
-    Object.keys(layout).forEach((k) => {
+    Object.keys(layout).forEach(k => {
       const f = layout[k];
       const val = d[k];
       if (!val) return;
@@ -154,12 +121,9 @@ function drawCard() {
       }
     });
 
-    /* DRAW PHOTO */
     if (uploadedPhoto) {
       const p =
-        d.college === "OLD_NIE" || d.college === "OLD_NIST"
-          ? photoOld
-          : photoNew;
+        d.college === "OLD_NIE" || d.college === "OLD_NIST" ? photoOld : photoNew;
 
       ctx.save();
       ctx.beginPath();
@@ -174,19 +138,21 @@ function drawCard() {
 }
 
 /* ============================================
-   BASE64 FROM IMAGE
+   BASE64 UTILITY
 ============================================ */
 function getBase64(img) {
   const c = document.createElement("canvas");
   c.width = img.width;
   c.height = img.height;
+
   const x = c.getContext("2d");
   x.drawImage(img, 0, 0);
+
   return c.toDataURL("image/png");
 }
 
 /* ============================================
-   INITIALIZE (CALLED FROM HTML)
+   INITIALIZE
 ============================================ */
 function initIDCardGenerator() {
   const rollEl = document.getElementById("roll");
@@ -197,133 +163,137 @@ function initIDCardGenerator() {
 
     if (!r.length) return (fetchBtn.style.display = "none");
 
-    checkRollExists(r, (exists) => {
-      document.getElementById("fetchBtn").style.display = exists
-        ? "block"
-        : "none";
+    checkRollExists(r, exists => {
+      document.getElementById("fetchBtn").style.display = exists ? "block" : "none";
     });
   });
 
-  /* CONTACT NUMBERS */
   document.getElementById("contact").addEventListener("input", function () {
     this.value = this.value.replace(/\D/g, "").slice(0, 10);
   });
 
-  document
-    .getElementById("parentContact")
-    .addEventListener("input", function () {
-      this.value = this.value.replace(/\D/g, "").slice(0, 10);
-    });
+  document.getElementById("parentContact").addEventListener("input", function () {
+    this.value = this.value.replace(/\D/g, "").slice(0, 10);
+  });
 
-  /* PHOTO UPLOAD */
-  document
-    .getElementById("photoInput")
-    .addEventListener("change", function (e) {
-      const file = e.target.files[0];
-      if (!file) return;
+  /* ============================================
+      PHOTO UPLOAD (New Upload)
+  ============================================ */
+  document.getElementById("photoInput").addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-      const img = new Image();
-      img.onload = () => {
-        uploadedPhoto = img;
-        drawCard();
-      };
-      img.src = URL.createObjectURL(file);
-    });
-
-  /* COLLEGE SWITCH */
-  document
-    .getElementById("collegeSelect")
-    .addEventListener("change", () => {
-      const c = document.getElementById("collegeSelect").value;
-      document.getElementById("branch").style.display =
-        c === "OLD_NIE" || c === "OLD_NIST" ? "none" : "block";
-      document.getElementById("blood").style.display =
-        c === "OLD_NIE" || c === "OLD_NIST" ? "block" : "none";
-      document.getElementById("course").style.display =
-        c === "OLD_NIE" || c === "OLD_NIST" ? "none" : "block";
-      document.getElementById("courseOld").style.display =
-        c === "OLD_NIE" || c === "OLD_NIST" ? "block" : "none";
-
+    const img = new Image();
+    img.onload = () => {
+      uploadedPhoto = img;
+      isNewPhoto = true;   // IMPORTANT
       drawCard();
-    });
+    };
 
-  /* BUTTONS */
+    img.src = URL.createObjectURL(file);
+  });
+
+  /* ============================================
+      COLLEGE SWITCH
+  ============================================ */
+  document.getElementById("collegeSelect").addEventListener("change", () => {
+    const c = document.getElementById("collegeSelect").value;
+
+    document.getElementById("branch").style.display =
+      c === "OLD_NIE" || c === "OLD_NIST" ? "none" : "block";
+
+    document.getElementById("blood").style.display =
+      c === "OLD_NIE" || c === "OLD_NIST" ? "block" : "none";
+
+    document.getElementById("course").style.display =
+      c === "OLD_NIE" || c === "OLD_NIST" ? "none" : "block";
+
+    document.getElementById("courseOld").style.display =
+      c === "OLD_NIE" || c === "OLD_NIST" ? "block" : "none";
+
+    drawCard();
+  });
+
+  /* ============================================
+      GENERATE BUTTON
+  ============================================ */
   document.getElementById("generateBtn").addEventListener("click", () => {
     drawCard();
+
     setTimeout(() => {
-     let photoData = "";
-if (uploadedPhoto && uploadedPhoto.src.startsWith("blob:")) {
-    // Only new uploads have blob URLs
-    photoData = getBase64(uploadedPhoto);
-}
+      let photoData = "";
 
-saveToSheet(photoData);
+      if (uploadedPhoto && isNewPhoto) {
+        // Only upload if user uploaded a new photo
+        photoData = getBase64(uploadedPhoto);
+      }
 
+      saveToSheet(photoData);
     }, 250);
   });
 
+  /* ============================================
+      PRINT
+  ============================================ */
   document.getElementById("printBtn").addEventListener("click", async () => {
     await drawCard();
+
     setTimeout(() => {
-      const canvas = document.getElementById("idCanvas");
-      const dataUrl = canvas.toDataURL("image/png");
+      const dataUrl = document.getElementById("idCanvas").toDataURL("image/png");
 
       const win = window.open("", "_blank");
       win.document.write(`
-        <img id="p" src="${dataUrl}" style="width:100%;max-width:800px;"/>
+        <img id="p" src="${dataUrl}" style="width:100%;max-width:800px;">
         <script>
-        p.onload = function(){window.print();setTimeout(()=>window.close(),500)};
+          p.onload = function(){ window.print(); setTimeout(()=>window.close(),500); };
         <\/script>
       `);
-    }, 400);
+    }, 350);
   });
 
-  /* PNG */
-  document
-    .getElementById("downloadPngBtn")
-    .addEventListener("click", () => {
-      drawCard();
-      setTimeout(() => {
-        const a = document.getElementById("dlink");
-        a.href = idCanvas.toDataURL("image/png");
-        a.download =
-          document.getElementById("roll").value.trim() || "IDCARD";
-        a.click();
-      }, 300);
-    });
+  /* ============================================
+      PNG DOWNLOAD
+  ============================================ */
+  document.getElementById("downloadPngBtn").addEventListener("click", () => {
+    drawCard();
 
-  /* PDF */
-  document
-    .getElementById("downloadPdfBtn")
-    .addEventListener("click", () => {
-      drawCard();
-      setTimeout(() => {
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF("p", "pt", "a4");
-        const img = idCanvas.toDataURL("image/png");
+    setTimeout(() => {
+      const a = document.getElementById("dlink");
+      a.href = idCanvas.toDataURL("image/png");
+      a.download = (document.getElementById("roll").value || "IDCARD") + ".png";
+      a.click();
+    }, 300);
+  });
 
-        const pw = pdf.internal.pageSize.getWidth() - 80;
-        const ph = pdf.internal.pageSize.getHeight() - 80;
-        const scale = Math.min(pw / 638, ph / 1016);
+  /* ============================================
+      PDF DOWNLOAD
+  ============================================ */
+  document.getElementById("downloadPdfBtn").addEventListener("click", () => {
+    drawCard();
 
-        const w = 638 * scale;
-        const h = 1016 * scale;
-        const x = (pdf.internal.pageSize.getWidth() - w) / 2;
+    setTimeout(() => {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF("p", "pt", "a4");
+      const img = idCanvas.toDataURL("image/png");
 
-        pdf.addImage(img, "PNG", x, 40, w, h);
-        pdf.save(
-          (document.getElementById("roll").value ||
-            "IDCARD") + ".pdf"
-        );
-      }, 350);
-    });
+      const pw = pdf.internal.pageSize.getWidth() - 80;
+      const ph = pdf.internal.pageSize.getHeight() - 80;
+      const scale = Math.min(pw / 638, ph / 1016);
+
+      const w = 638 * scale;
+      const h = 1016 * scale;
+      const x = (pdf.internal.pageSize.getWidth() - w) / 2;
+
+      pdf.addImage(img, "PNG", x, 40, w, h);
+      pdf.save((document.getElementById("roll").value || "IDCARD") + ".pdf");
+    }, 350);
+  });
 
   /* RESET */
   document.getElementById("resetBtn").addEventListener("click", () => {
-    document
-      .querySelectorAll("#idcard-widget input")
-      .forEach((i) => (i.value = ""));
+    document.querySelectorAll("#idcard-widget input").forEach(i => (i.value = ""));
     uploadedPhoto = null;
+    isNewPhoto = false;
     drawCard();
   });
 
@@ -352,10 +322,7 @@ function fetchRecord() {
 
       document.getElementById("collegeSelect").value = data.college;
 
-      if (
-        data.college === "OLD_NIE" ||
-        data.college === "OLD_NIST"
-      ) {
+      if (data.college === "OLD_NIE" || data.college === "OLD_NIST") {
         document.getElementById("courseOld").value = data.course;
       } else {
         document.getElementById("course").value = data.course;
@@ -364,17 +331,20 @@ function fetchRecord() {
       if (data.photo) {
         const img = new Image();
         img.crossOrigin = "anonymous";
+
         img.onload = () => {
           uploadedPhoto = img;
+          isNewPhoto = false;   // IMPORTANT (because this is OLD photo)
           drawCard();
         };
+
         img.src = data.photo;
       } else {
         uploadedPhoto = null;
+        isNewPhoto = false;
       }
 
       document.getElementById("fetchBtn").style.display = "block";
       drawCard();
     });
 }
-
