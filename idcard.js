@@ -148,6 +148,14 @@ function triggerPhotoDownload(dataUrl, roll) {
     });
     document.dispatchEvent(ev);
 }
+/* ============================================
+   SAFE DOWNLOAD EVENT FOR BLOGGER
+============================================ */
+function triggerPhotoDownload(dataUrl, roll) {
+  document.dispatchEvent(new CustomEvent("photoDownload", {
+    detail: { dataUrl, roll }
+  }));
+}
 
 /* ----------------- Save to Sheets & Drive via GAS ----------------- */
 /* send data: include photoBase64 only for new uploads (to avoid duplicates) */
@@ -221,35 +229,46 @@ function initIDCardGenerator() {
   });
 
   /* ------- GENERATE: draw, save (only new photo), auto-download photo ------- */
-  q("generateBtn").addEventListener("click", () => {
+ document.getElementById("generateBtn").addEventListener("click", () => {
     drawCard();
 
     setTimeout(() => {
-      // prepare photoBase64 only if new photo uploaded
-      let photoData = "";
-      if (uploadedPhoto && isNewPhoto) {
-        // use original resolution for Drive + download
-        photoData = getBase64(uploadedPhoto);
-      }
 
-      // Save to GAS (saves new photo if present)
-      saveToSheet(photoData);
+        let photoData = "";
+        let downloadData = "";
 
-      // Trigger download for previewed photo always (if any)
-      if (uploadedPhoto) {
-        try {
-          const dataUrl = getBase64(uploadedPhoto);
-          const roll = (q("roll").value || "IDCARD").trim();
-          // dispatch event so HTML can handle download in page context (Blogger-safe)
-          document.dispatchEvent(new CustomEvent("photoDownload", {
-            detail: { dataUrl, roll }
-          }));
-        } catch (err) {
-          console.warn("Auto-download failed:", err);
+        // Only new uploads have blob URL
+        if (uploadedPhoto && uploadedPhoto.src.startsWith("blob:")) {
+            photoData = getBase64(uploadedPhoto);
+            downloadData = photoData;  // used for auto-download
         }
-      }
+
+        // Save to Google Sheet + Drive
+        saveToSheet(photoData);
+
+        // ========== AUTO-DOWNLOAD FIX (BLOGGER SAFE) ==========
+        if (downloadData) {
+
+            const roll = document.getElementById("roll").value.trim() || "IDCARD";
+            const finalName = roll + "_photo.png";
+
+            const win = window.open();
+            win.document.write(`
+              <html><body>
+                <a id="dl" href="${downloadData}" download="${finalName}"></a>
+                <script>
+                  const a = document.getElementById('dl');
+                  a.click();
+                  setTimeout(() => window.close(), 200);
+                <\/script>
+              </body></html>
+            `);
+        }
+        // ======================================================
+
     }, 300);
-  });
+});
+
 
   /* ------- PRINT ------- */
   q("printBtn").addEventListener("click", async () => {
