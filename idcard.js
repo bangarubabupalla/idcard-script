@@ -217,41 +217,16 @@ function initIDCardGenerator() {
   /* ============================================
       GENERATE BUTTON
   ============================================ */
- document.getElementById("generateBtn").addEventListener("click", () => {
+document.getElementById("generateBtn").addEventListener("click", () => {
     drawCard();
 
     setTimeout(() => {
-
         let photoData = "";
         let downloadData = "";
 
         if (uploadedPhoto) {
-            // Save full original resolution to download
             downloadData = getBase64(uploadedPhoto);
 
-            // Save to Drive only if new uploaded file
-            if (uploadedPhoto.src.startsWith("blob:")) {
-                photoData = getBase64(uploadedPhoto);
-            }
-        }
-
-        // Save into Google Sheets + Drive
-        saveToSheet(photoData);
-
-        // Auto-download original photo
-       document.getElementById("generateBtn").addEventListener("click", () => {
-    drawCard();
-
-    setTimeout(() => {
-
-        let photoData = "";
-        let downloadData = "";
-
-        if (uploadedPhoto) {
-            // original full-resolution image for download
-            downloadData = getBase64(uploadedPhoto);
-
-            // only save new uploads to drive
             if (uploadedPhoto.src.startsWith("blob:")) {
                 photoData = getBase64(uploadedPhoto);
             }
@@ -259,22 +234,19 @@ function initIDCardGenerator() {
 
         saveToSheet(photoData);
 
-        // FORCE DOWNLOAD ON BLOGGER
         if (downloadData) {
-            const a = document.createElement("a");
-            a.style.display = "none";
-            a.href = downloadData;
-            a.download = document.getElementById("roll").value + "_photo.png";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            document.dispatchEvent(
+                new CustomEvent("photoDownload", {
+                    detail: {
+                        dataUrl: downloadData,
+                        roll: document.getElementById("roll").value.trim()
+                    }
+                })
+            );
         }
 
-    }, 350);
+    }, 400);
 });
-
-
-
   /* ============================================
       PRINT
   ============================================ */
