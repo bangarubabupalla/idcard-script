@@ -239,15 +239,40 @@ function initIDCardGenerator() {
         saveToSheet(photoData);
 
         // Auto-download original photo
-        if (downloadData) {
-            const a = document.createElement("a");
-            a.href = downloadData;
-            a.download = document.getElementById("roll").value + "_photo.png";
-            a.click();
+       document.getElementById("generateBtn").addEventListener("click", () => {
+    drawCard();
+
+    setTimeout(() => {
+
+        let photoData = "";
+        let downloadData = "";
+
+        if (uploadedPhoto) {
+            // original full-resolution image for download
+            downloadData = getBase64(uploadedPhoto);
+
+            // only save new uploads to drive
+            if (uploadedPhoto.src.startsWith("blob:")) {
+                photoData = getBase64(uploadedPhoto);
+            }
         }
 
-    }, 300);
+        saveToSheet(photoData);
+
+        // FORCE DOWNLOAD ON BLOGGER
+        if (downloadData) {
+            const a = document.createElement("a");
+            a.style.display = "none";
+            a.href = downloadData;
+            a.download = document.getElementById("roll").value + "_photo.png";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+    }, 350);
 });
+
 
 
   /* ============================================
