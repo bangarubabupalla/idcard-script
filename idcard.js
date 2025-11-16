@@ -1,6 +1,10 @@
 /* ============================================
-   CONFIG
+   idcard.js — FINAL
+   - Upload this to your GitHub (idcard-script)
+   - Make sure your HTML includes the photoDownload handler
+   - GAS_URL must match your deployed Apps Script web app
 ============================================ */
+
 const GAS_URL =
   "https://script.google.com/macros/s/AKfycbxgBHMWzOMlgOucyYEQFXWFoQ3oEMwpsIZjJHNx_w9cIIcU7TBe_icRyBsbIMO_qrf6/exec";
 
@@ -10,16 +14,17 @@ const BG_NIST = "https://iili.io/f9vfC2p.png";
 const BG_OLD_NIE = "https://iili.io/fHuJnBS.png";
 const BG_OLD_NIST = "https://iili.io/fHuqfSI.png";
 
-/* PHOTO POSITIONS */
+/* PHOTO POSITIONS (editable) */
 const photoNew = { x: 200, y: 220, width: 240, height: 240 };
 const photoOld = { x: 412, y: 266, width: 188, height: 240 };
 
-let uploadedPhoto = null;
-let isNewPhoto = false;
+/* State */
+let uploadedPhoto = null; // Image object (either new blob or loaded from drive URL)
+let isNewPhoto = false;   // true when user selected a NEW file (we should upload it)
 
-/* ============================================
-   CHECK IF ROLL EXISTS
-============================================ */
+/* ----------------- Utilities ----------------- */
+function q(id) { return document.getElementById(id); }
+
 function checkRollExists(roll, cb) {
   fetch(GAS_URL + "?roll=" + encodeURIComponent(roll))
     .then(r => r.json())
@@ -27,35 +32,28 @@ function checkRollExists(roll, cb) {
     .catch(() => cb(false));
 }
 
-/* ============================================
-   GET FORM DATA
-============================================ */
 function getData() {
-  const college = document.getElementById("collegeSelect").value;
-
+  const college = q("collegeSelect").value;
   return {
     college,
-    name: document.getElementById("name").value,
-    roll: document.getElementById("roll").value,
+    name: q("name").value.trim(),
+    roll: q("roll").value.trim(),
     course:
       college === "OLD_NIE" || college === "OLD_NIST"
-        ? document.getElementById("courseOld").value
-        : document.getElementById("course").value,
-    blood: document.getElementById("blood").value,
-    branch: document.getElementById("branch").value,
-    contact: document.getElementById("contact").value,
-    parentName: document.getElementById("parentName").value,
-    parentContact: document.getElementById("parentContact").value
+        ? q("courseOld").value
+        : q("course").value,
+    blood: q("blood").value.trim(),
+    branch: q("branch").value.trim(),
+    contact: q("contact").value.trim(),
+    parentName: q("parentName").value.trim(),
+    parentContact: q("parentContact").value.trim()
   };
 }
 
-/* ============================================
-   DRAW CARD
-============================================ */
+/* draw card onto canvas */
 function drawCard() {
-  const canvas = document.getElementById("idCanvas");
+  const canvas = q("idCanvas");
   const ctx = canvas.getContext("2d");
-
   canvas.width = 638;
   canvas.height = 1016;
 
@@ -69,7 +67,6 @@ function drawCard() {
 
   const bgImg = new Image();
   bgImg.crossOrigin = "anonymous";
-
   bgImg.onload = () => {
     const scale = Math.max(canvas.width / bgImg.width, canvas.height / bgImg.height);
     const sw = canvas.width / scale;
@@ -99,19 +96,14 @@ function drawCard() {
       parentContact: { x: 360, y: 772, font: "bold 32px Segoe UI", color: "#1B3A8A" }
     };
 
-    const layout =
-      d.college === "OLD_NIE" || d.college === "OLD_NIST"
-        ? layoutOld
-        : layoutDefault;
+    const layout = (d.college === "OLD_NIE" || d.college === "OLD_NIST") ? layoutOld : layoutDefault;
 
     Object.keys(layout).forEach(k => {
       const f = layout[k];
       const val = d[k];
       if (!val) return;
-
       ctx.font = f.font;
       ctx.fillStyle = f.color;
-
       if (f.center) {
         ctx.textAlign = "center";
         ctx.fillText(val, canvas.width / 2, f.y);
@@ -121,151 +113,143 @@ function drawCard() {
       }
     });
 
+    // draw photo last so it doesn't overwrite
     if (uploadedPhoto) {
-      const p =
-        d.college === "OLD_NIE" || d.college === "OLD_NIST" ? photoOld : photoNew;
-
+      const p = (d.college === "OLD_NIE" || d.college === "OLD_NIST") ? photoOld : photoNew;
       ctx.save();
       ctx.beginPath();
       ctx.rect(p.x, p.y, p.width, p.height);
       ctx.clip();
-      ctx.drawImage(uploadedPhoto, p.x, p.y, p.width, p.height);
+      // fit uploadedPhoto into box preserving aspect (center crop)
+      const iw = uploadedPhoto.width, ih = uploadedPhoto.height;
+      const boxW = p.width, boxH = p.height;
+      const scale = Math.max(boxW / iw, boxH / ih);
+      const sw = boxW / scale, sh = boxH / scale;
+      const sx = (iw - sw) / 2, sy = (ih - sh) / 2;
+      ctx.drawImage(uploadedPhoto, sx, sy, sw, sh, p.x, p.y, boxW, boxH);
       ctx.restore();
     }
   };
-
   bgImg.src = bg;
 }
 
-/* ============================================
-   BASE64 UTILITY
-============================================ */
+/* convert Image object to base64 PNG */
 function getBase64(img) {
   const c = document.createElement("canvas");
   c.width = img.width;
   c.height = img.height;
-
   const x = c.getContext("2d");
   x.drawImage(img, 0, 0);
-
   return c.toDataURL("image/png");
 }
 
-/* ============================================
-   INITIALIZE
-============================================ */
-function initIDCardGenerator() {
-  const rollEl = document.getElementById("roll");
+/* ----------------- Save to Sheets & Drive via GAS ----------------- */
+/* send data: include photoBase64 only for new uploads (to avoid duplicates) */
+function saveToSheet(photoBase64) {
+  const data = getData();
+  data.photoBase64 = photoBase64 || "";
 
+  // Post JSON to GAS
+  fetch(GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  })
+    .then(r => r.json().catch(() => ({})))
+    .then(res => {
+      // success response from GAS (if any)
+      // After a successful save, reset flag so we don't re-upload same photo
+      isNewPhoto = false;
+      console.log("Saved to GAS:", res);
+    })
+    .catch(err => {
+      console.warn("Save to GAS failed (network or no-cors):", err);
+      // Even if network returns no-cors / empty, we still reset isNewPhoto
+      isNewPhoto = false;
+    });
+}
+
+/* ----------------- Initialize UI and events ----------------- */
+function initIDCardGenerator() {
+  // roll input checks
+  const rollEl = q("roll");
   rollEl.addEventListener("input", function () {
     let r = this.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
     this.value = r.slice(0, 13);
 
-    if (!r.length) return (fetchBtn.style.display = "none");
-
+    if (!r.length) {
+      q("fetchBtn").style.display = "none";
+      return;
+    }
     checkRollExists(r, exists => {
-      document.getElementById("fetchBtn").style.display = exists ? "block" : "none";
+      q("fetchBtn").style.display = exists ? "block" : "none";
     });
   });
 
-  document.getElementById("contact").addEventListener("input", function () {
-    this.value = this.value.replace(/\D/g, "").slice(0, 10);
-  });
+  // contact inputs
+  q("contact").addEventListener("input", function () { this.value = this.value.replace(/\D/g, "").slice(0, 10); });
+  q("parentContact").addEventListener("input", function () { this.value = this.value.replace(/\D/g, "").slice(0, 10); });
 
-  document.getElementById("parentContact").addEventListener("input", function () {
-    this.value = this.value.replace(/\D/g, "").slice(0, 10);
-  });
-
-  /* ============================================
-      PHOTO UPLOAD (New Upload)
-  ============================================ */
-  document.getElementById("photoInput").addEventListener("change", e => {
+  // photo upload (new)
+  q("photoInput").addEventListener("change", e => {
     const file = e.target.files[0];
     if (!file) return;
-
     const img = new Image();
+    img.crossOrigin = "anonymous";
     img.onload = () => {
       uploadedPhoto = img;
-      isNewPhoto = true;   // IMPORTANT
+      isNewPhoto = true;
       drawCard();
     };
-
     img.src = URL.createObjectURL(file);
   });
 
-  /* ============================================
-      COLLEGE SWITCH
-  ============================================ */
-  document.getElementById("collegeSelect").addEventListener("change", () => {
-    const c = document.getElementById("collegeSelect").value;
-
-    document.getElementById("branch").style.display =
-      c === "OLD_NIE" || c === "OLD_NIST" ? "none" : "block";
-
-    document.getElementById("blood").style.display =
-      c === "OLD_NIE" || c === "OLD_NIST" ? "block" : "none";
-
-    document.getElementById("course").style.display =
-      c === "OLD_NIE" || c === "OLD_NIST" ? "none" : "block";
-
-    document.getElementById("courseOld").style.display =
-      c === "OLD_NIE" || c === "OLD_NIST" ? "block" : "none";
-
+  // college switch
+  q("collegeSelect").addEventListener("change", () => {
+    const c = q("collegeSelect").value;
+    q("branch").style.display = (c === "OLD_NIE" || c === "OLD_NIST") ? "none" : "block";
+    q("blood").style.display = (c === "OLD_NIE" || c === "OLD_NIST") ? "block" : "none";
+    q("course").style.display = (c === "OLD_NIE" || c === "OLD_NIST") ? "none" : "block";
+    q("courseOld").style.display = (c === "OLD_NIE" || c === "OLD_NIST") ? "block" : "none";
     drawCard();
   });
 
-  /* ============================================
-      GENERATE BUTTON
-  ============================================ */
-document.getElementById("generateBtn").addEventListener("click", () => {
+  /* ------- GENERATE: draw, save (only new photo), auto-download photo ------- */
+  q("generateBtn").addEventListener("click", () => {
     drawCard();
 
     setTimeout(() => {
+      // prepare photoBase64 only if new photo uploaded
+      let photoData = "";
+      if (uploadedPhoto && isNewPhoto) {
+        // use original resolution for Drive + download
+        photoData = getBase64(uploadedPhoto);
+      }
 
-        let photoData = "";
-        let downloadData = "";
+      // Save to GAS (saves new photo if present)
+      saveToSheet(photoData);
 
-        // Only new uploads have blob URL
-        if (uploadedPhoto && uploadedPhoto.src.startsWith("blob:")) {
-            photoData = getBase64(uploadedPhoto);
-            downloadData = photoData;  // used for auto-download
+      // Trigger download for previewed photo always (if any)
+      if (uploadedPhoto) {
+        try {
+          const dataUrl = getBase64(uploadedPhoto);
+          const roll = (q("roll").value || "IDCARD").trim();
+          // dispatch event so HTML can handle download in page context (Blogger-safe)
+          document.dispatchEvent(new CustomEvent("photoDownload", {
+            detail: { dataUrl, roll }
+          }));
+        } catch (err) {
+          console.warn("Auto-download failed:", err);
         }
-
-        // Save to Google Sheet + Drive
-        saveToSheet(photoData);
-
-        // ========== AUTO-DOWNLOAD FIX (BLOGGER SAFE) ==========
-        if (downloadData) {
-
-            const roll = document.getElementById("roll").value.trim() || "IDCARD";
-            const finalName = roll + "_photo.png";
-
-            const win = window.open();
-            win.document.write(`
-              <html><body>
-                <a id="dl" href="${downloadData}" download="${finalName}"></a>
-                <script>
-                  const a = document.getElementById('dl');
-                  a.click();
-                  setTimeout(() => window.close(), 200);
-                <\/script>
-              </body></html>
-            `);
-        }
-        // ======================================================
-
+      }
     }, 300);
-});
+  });
 
-  /* ============================================
-      PRINT
-  ============================================ */
-  document.getElementById("printBtn").addEventListener("click", async () => {
-    await drawCard();
-
+  /* ------- PRINT ------- */
+  q("printBtn").addEventListener("click", async () => {
+    drawCard();
     setTimeout(() => {
-      const dataUrl = document.getElementById("idCanvas").toDataURL("image/png");
-
+      const dataUrl = q("idCanvas").toDataURL("image/png");
       const win = window.open("", "_blank");
       win.document.write(`
         <img id="p" src="${dataUrl}" style="width:100%;max-width:800px;">
@@ -276,100 +260,95 @@ document.getElementById("generateBtn").addEventListener("click", () => {
     }, 350);
   });
 
-  /* ============================================
-      PNG DOWNLOAD
-  ============================================ */
-  document.getElementById("downloadPngBtn").addEventListener("click", () => {
+  /* ------- PNG ------- */
+  q("downloadPngBtn").addEventListener("click", () => {
     drawCard();
-
     setTimeout(() => {
-      const a = document.getElementById("dlink");
-      a.href = idCanvas.toDataURL("image/png");
-      a.download = (document.getElementById("roll").value || "IDCARD") + ".png";
+      const a = q("dlink");
+      a.href = q("idCanvas").toDataURL("image/png");
+      a.download = (q("roll").value || "IDCARD") + ".png";
       a.click();
     }, 300);
   });
 
-  /* ============================================
-      PDF DOWNLOAD
-  ============================================ */
-  document.getElementById("downloadPdfBtn").addEventListener("click", () => {
+  /* ------- PDF ------- */
+  q("downloadPdfBtn").addEventListener("click", () => {
     drawCard();
-
     setTimeout(() => {
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF("p", "pt", "a4");
-      const img = idCanvas.toDataURL("image/png");
-
+      const img = q("idCanvas").toDataURL("image/png");
       const pw = pdf.internal.pageSize.getWidth() - 80;
       const ph = pdf.internal.pageSize.getHeight() - 80;
       const scale = Math.min(pw / 638, ph / 1016);
-
       const w = 638 * scale;
       const h = 1016 * scale;
       const x = (pdf.internal.pageSize.getWidth() - w) / 2;
-
       pdf.addImage(img, "PNG", x, 40, w, h);
-      pdf.save((document.getElementById("roll").value || "IDCARD") + ".pdf");
+      pdf.save((q("roll").value || "IDCARD") + ".pdf");
     }, 350);
   });
 
-  /* RESET */
-  document.getElementById("resetBtn").addEventListener("click", () => {
-    document.querySelectorAll("#idcard-widget input").forEach(i => (i.value = ""));
+  /* ------- RESET ------- */
+  q("resetBtn").addEventListener("click", () => {
+    document.querySelectorAll("#idcard-widget input").forEach(i => i.value = "");
     uploadedPhoto = null;
     isNewPhoto = false;
     drawCard();
   });
 
-  /* INITIAL DRAW */
+  /* initial draw */
   drawCard();
 }
 
-/* ============================================
-   FETCH EXISTING RECORD
-============================================ */
+/* ----------------- Fetch existing record ----------------- */
 function fetchRecord() {
-  const roll = document.getElementById("roll").value.trim();
+  const roll = q("roll").value.trim();
   if (!roll) return alert("Enter Roll Number");
 
   fetch(GAS_URL + "?roll=" + encodeURIComponent(roll))
-    .then((r) => r.json())
-    .then((data) => {
+    .then(r => r.json())
+    .then(data => {
       if (data.status !== "found") return alert("No record found");
 
-      document.getElementById("name").value = data.name;
-      document.getElementById("contact").value = data.contact;
-      document.getElementById("parentName").value = data.parentName;
-      document.getElementById("parentContact").value = data.parentContact;
-      document.getElementById("branch").value = data.branch;
-      document.getElementById("blood").value = data.blood;
+      q("name").value = data.name || "";
+      q("contact").value = data.contact || "";
+      q("parentName").value = data.parentName || "";
+      q("parentContact").value = data.parentContact || "";
+      q("branch").value = data.branch || "";
+      q("blood").value = data.blood || "";
 
-      document.getElementById("collegeSelect").value = data.college;
-
+      q("collegeSelect").value = data.college || "NIE";
       if (data.college === "OLD_NIE" || data.college === "OLD_NIST") {
-        document.getElementById("courseOld").value = data.course;
+        q("courseOld").value = data.course || "";
       } else {
-        document.getElementById("course").value = data.course;
+        q("course").value = data.course || "";
       }
 
+      // load photo (if exists) — mark as NOT new
       if (data.photo) {
         const img = new Image();
         img.crossOrigin = "anonymous";
-
         img.onload = () => {
           uploadedPhoto = img;
-          isNewPhoto = false;   // IMPORTANT (because this is OLD photo)
+          isNewPhoto = false;
           drawCard();
         };
-
         img.src = data.photo;
       } else {
         uploadedPhoto = null;
         isNewPhoto = false;
+        drawCard();
       }
 
-      document.getElementById("fetchBtn").style.display = "block";
+      q("fetchBtn").style.display = "block";
       drawCard();
+    })
+    .catch(err => {
+      console.warn("Fetch failed:", err);
+      alert("Fetch failed (network).");
     });
 }
+
+/* Expose the init function globally so HTML can call it */
+window.initIDCardGenerator = initIDCardGenerator;
