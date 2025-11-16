@@ -54,6 +54,9 @@ function getData() {
 /* ============================================
    DRAW CARD
 ============================================ */
+if (window.livePhoto) {
+   photo = await loadImage(window.livePhoto);
+}
 function drawCard() {
   const canvas = q("idCanvas");
   const ctx = canvas.getContext("2d");
