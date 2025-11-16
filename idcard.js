@@ -282,12 +282,10 @@ document.getElementById("generateBtn").addEventListener("click", () => {
 
     // ⭐ FIRE SPECIAL EVENT FOR BLOGGER ⭐
     if (downloadData) {
-      const roll = document.getElementById("roll").value.trim() || "IDCARD";
-      triggerPhotoDownload(downloadData, roll);
-    }
+    const roll = document.getElementById("roll").value.trim() || "IDCARD";
+    triggerPhotoDownload(downloadData, roll);
+}
 
-  }, 300);
-});
 /* =========================================================
    FETCH RECORD
 ========================================================= */
