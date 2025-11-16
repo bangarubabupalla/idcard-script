@@ -225,38 +225,37 @@ document.getElementById("generateBtn").addEventListener("click", () => {
         let photoData = "";
         let downloadData = "";
 
-        if (uploadedPhoto) {
-            // full resolution for local download
-            downloadData = getBase64(uploadedPhoto);
-
-            // only save new uploads to Drive
-            if (uploadedPhoto.src.startsWith("blob:")) {
-                photoData = getBase64(uploadedPhoto);
-            }
+        // Only new uploads have blob URL
+        if (uploadedPhoto && uploadedPhoto.src.startsWith("blob:")) {
+            photoData = getBase64(uploadedPhoto);
+            downloadData = photoData;  // used for auto-download
         }
 
+        // Save to Google Sheet + Drive
         saveToSheet(photoData);
 
-        // Trigger Blogger-safe auto download
-      // AUTO-DOWNLOAD (Blogger safe using window.open)
-if (downloadData) {
+        // ========== AUTO-DOWNLOAD FIX (BLOGGER SAFE) ==========
+        if (downloadData) {
 
-    const roll = document.getElementById("roll").value.trim();
-    const finalName = roll + "_photo.png";
+            const roll = document.getElementById("roll").value.trim() || "IDCARD";
+            const finalName = roll + "_photo.png";
 
-    const win = window.open();
-    win.document.write(`
-      <html><body>
-        <a id="dl" href="${downloadData}" download="${finalName}"></a>
-        <script>
-          const a = document.getElementById('dl');
-          a.click();
-          setTimeout(() => window.close(), 200);
-        <\/script>
-      </body></html>
-    `);
+            const win = window.open();
+            win.document.write(`
+              <html><body>
+                <a id="dl" href="${downloadData}" download="${finalName}"></a>
+                <script>
+                  const a = document.getElementById('dl');
+                  a.click();
+                  setTimeout(() => window.close(), 200);
+                <\/script>
+              </body></html>
+            `);
+        }
+        // ======================================================
 
-}
+    }, 300);
+});
 
   /* ============================================
       PRINT
