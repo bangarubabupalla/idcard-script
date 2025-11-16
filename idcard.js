@@ -250,96 +250,31 @@ function initIDCardGenerator() {
   /* =========================================================
      GENERATE — draw → save → auto-download (Blogger-safe)
   ========================================================= */
- /* =========================================================
-   GENERATE — draw → save → auto-download (Blogger-safe)
-========================================================= */
-q("generateBtn").addEventListener("click", () => {
-
-    drawCard();
-
-    setTimeout(() => {
-
-        let photoData = "";
-        let roll = q("roll").value.trim() || "IDCARD";
-
-        // Only NEW photo should download & upload
-        if (uploadedPhoto && isNewPhoto) {
-            photoData = getBase64(uploadedPhoto);
-
-            /* 🔥 Blogger-safe download window 🔥 */
-            const win = window.open("about:blank", "_blank");
-
-            win.document.write(`
-              <html><body>
-                <a id="dl" href="${photoData}" download="${roll}_photo.png"></a>
-                <script>
-                  const a = document.getElementById('dl');
-                  a.click();
-                  setTimeout(() => window.close(), 300);
-                <\/script>
-              </body></html>
-            `);
-
-            win.document.close();
-        }
-
-        // Save to Sheets + Drive
-        saveToSheet(photoData);
-
-        // Mark old
-        isNewPhoto = false;
-
-    }, 300);
-});
-
-
-  /* PRINT */
-  q("printBtn").addEventListener("click", () => {
-    drawCard();
-    setTimeout(() => {
-      const dataUrl = q("idCanvas").toDataURL("image/png");
-      const w = window.open("");
-      w.document.write(`<img src="${dataUrl}" style="width:100%;">`);
-      w.print();
-      setTimeout(() => w.close(), 500);
-    }, 400);
-  });
-
-  /* PNG Download */
-  q("downloadPngBtn").addEventListener("click", () => {
-    drawCard();
-    setTimeout(() => {
-      const a = q("dlink");
-      a.href = q("idCanvas").toDataURL("image/png");
-      a.download = (q("roll").value || "IDCARD") + ".png";
-      a.click();
-    }, 300);
-  });
-
-  /* PDF */
-  q("downloadPdfBtn").addEventListener("click", () => {
-    drawCard();
-    setTimeout(() => {
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF("p", "pt", "a4");
-      const img = q("idCanvas").toDataURL("image/png");
-      const scale = Math.min(515 / 638, 715 / 1016);
-      pdf.addImage(img, "PNG", 40, 40, 638 * scale, 1016 * scale);
-      pdf.save((q("roll").value || "IDCARD") + ".pdf");
-    }, 350);
-  });
-
-  /* Reset */
-  q("resetBtn").addEventListener("click", () => {
-    document.querySelectorAll("#idcard-widget input").forEach(i => i.value = "");
-    uploadedPhoto = null;
-    isNewPhoto = false;
-    drawCard();
-  });
-
+document.getElementById("generateBtn").addEventListener("click", () => {
   drawCard();
-}
 
+  setTimeout(() => {
+
+    let photoData = "";
+    let downloadData = "";
+
+    // Only new uploads have blob URL
+    if (uploadedPhoto && uploadedPhoto.src.startsWith("blob:")) {
+      photoData = getBase64(uploadedPhoto);
+      downloadData = photoData;   // used for auto download
+    }
+
+    // Save to Google Sheet + Drive
+    saveToSheet(photoData);
+
+    // ⭐ FIRE BLOGGER-SAFE DOWNLOAD EVENT ⭐
+    if (downloadData) {
+      const roll = q("roll").value.trim() || "IDCARD";
+      triggerPhotoDownload(downloadData, roll);
+    }
+
+  }, 300);
+});
 /* =========================================================
    FETCH RECORD
 ========================================================= */
