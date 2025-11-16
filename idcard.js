@@ -261,15 +261,15 @@ document.getElementById("generateBtn").addEventListener("click", () => {
     // Only new uploads have blob URL
     if (uploadedPhoto && uploadedPhoto.src.startsWith("blob:")) {
       photoData = getBase64(uploadedPhoto);
-      downloadData = photoData;   // used for auto download
+      downloadData = photoData;
     }
 
     // Save to Google Sheet + Drive
     saveToSheet(photoData);
 
-    // ⭐ FIRE BLOGGER-SAFE DOWNLOAD EVENT ⭐
+    // ⭐ FIRE SPECIAL EVENT FOR BLOGGER ⭐
     if (downloadData) {
-      const roll = q("roll").value.trim() || "IDCARD";
+      const roll = document.getElementById("roll").value.trim() || "IDCARD";
       triggerPhotoDownload(downloadData, roll);
     }
 
