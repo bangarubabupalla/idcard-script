@@ -142,6 +142,12 @@ function getBase64(img) {
   x.drawImage(img, 0, 0);
   return c.toDataURL("image/png");
 }
+function triggerPhotoDownload(dataUrl, roll) {
+    const ev = new CustomEvent("photoDownload", {
+        detail: { dataUrl, roll }
+    });
+    document.dispatchEvent(ev);
+}
 
 /* ----------------- Save to Sheets & Drive via GAS ----------------- */
 /* send data: include photoBase64 only for new uploads (to avoid duplicates) */
