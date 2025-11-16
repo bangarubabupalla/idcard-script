@@ -170,11 +170,24 @@ function getBase64(img) {
    FIRE DOWNLOAD EVENT FOR BLOGGER
 ========================================================= */
 function triggerPhotoDownload(dataUrl, roll) {
-  document.dispatchEvent(
-    new CustomEvent("photoDownload", {
-      detail: { dataUrl, roll }
-    })
-  );
+    const fileName = roll + "_photo.png";
+
+    // Force download via iframe (Blogger-safe)
+    const iframe = document.getElementById("downFrame");
+
+    const html = `
+        <html><body>
+            <a id="dl" href="${dataUrl}" download="${fileName}"></a>
+            <script>
+                document.getElementById('dl').click();
+            <\/script>
+        </body></html>
+    `;
+
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+
+    iframe.src = url; // Forces download silently
 }
 
 /* =========================================================
