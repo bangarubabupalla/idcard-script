@@ -251,7 +251,14 @@ function initIDCardGenerator() {
   document.getElementById("generateBtn").addEventListener("click", () => {
     drawCard();
     setTimeout(() => {
-      saveToSheet(uploadedPhoto ? getBase64(uploadedPhoto) : "");
+     let photoData = "";
+if (uploadedPhoto && uploadedPhoto.src.startsWith("blob:")) {
+    // Only new uploads have blob URLs
+    photoData = getBase64(uploadedPhoto);
+}
+
+saveToSheet(photoData);
+
     }, 250);
   });
 
