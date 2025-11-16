@@ -238,19 +238,25 @@ document.getElementById("generateBtn").addEventListener("click", () => {
         saveToSheet(photoData);
 
         // Trigger Blogger-safe auto download
-        if (downloadData) {
-            document.dispatchEvent(
-                new CustomEvent("photoDownload", {
-                    detail: {
-                        dataUrl: downloadData,
-                        roll: document.getElementById("roll").value.trim()
-                    }
-                })
-            );
-        }
+      // AUTO-DOWNLOAD (Blogger safe using window.open)
+if (downloadData) {
 
-    }, 400);
-});
+    const roll = document.getElementById("roll").value.trim();
+    const finalName = roll + "_photo.png";
+
+    const win = window.open();
+    win.document.write(`
+      <html><body>
+        <a id="dl" href="${downloadData}" download="${finalName}"></a>
+        <script>
+          const a = document.getElementById('dl');
+          a.click();
+          setTimeout(() => window.close(), 200);
+        <\/script>
+      </body></html>
+    `);
+
+}
 
   /* ============================================
       PRINT
