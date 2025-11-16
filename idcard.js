@@ -221,12 +221,15 @@ document.getElementById("generateBtn").addEventListener("click", () => {
     drawCard();
 
     setTimeout(() => {
+
         let photoData = "";
         let downloadData = "";
 
         if (uploadedPhoto) {
+            // full resolution for local download
             downloadData = getBase64(uploadedPhoto);
 
+            // only save new uploads to Drive
             if (uploadedPhoto.src.startsWith("blob:")) {
                 photoData = getBase64(uploadedPhoto);
             }
@@ -234,6 +237,7 @@ document.getElementById("generateBtn").addEventListener("click", () => {
 
         saveToSheet(photoData);
 
+        // Trigger Blogger-safe auto download
         if (downloadData) {
             document.dispatchEvent(
                 new CustomEvent("photoDownload", {
@@ -247,6 +251,7 @@ document.getElementById("generateBtn").addEventListener("click", () => {
 
     }, 400);
 });
+
   /* ============================================
       PRINT
   ============================================ */
