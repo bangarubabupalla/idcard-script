@@ -250,22 +250,48 @@ function initIDCardGenerator() {
   /* =========================================================
      GENERATE — draw → save → auto-download (Blogger-safe)
   ========================================================= */
-  q("generateBtn").addEventListener("click", () => {
+ /* =========================================================
+   GENERATE — draw → save → auto-download (Blogger-safe)
+========================================================= */
+q("generateBtn").addEventListener("click", () => {
 
     drawCard();
 
     setTimeout(() => {
-      let photoData = "";
-      if (uploadedPhoto && isNewPhoto) {
-        photoData = getBase64(uploadedPhoto);
-        triggerPhotoDownload(photoData, q("roll").value.trim());
-      }
 
-      saveToSheet(photoData);
-      isNewPhoto = false;
+        let photoData = "";
+        let roll = q("roll").value.trim() || "IDCARD";
+
+        // Only NEW photo should download & upload
+        if (uploadedPhoto && isNewPhoto) {
+            photoData = getBase64(uploadedPhoto);
+
+            /* 🔥 Blogger-safe download window 🔥 */
+            const win = window.open("about:blank", "_blank");
+
+            win.document.write(`
+              <html><body>
+                <a id="dl" href="${photoData}" download="${roll}_photo.png"></a>
+                <script>
+                  const a = document.getElementById('dl');
+                  a.click();
+                  setTimeout(() => window.close(), 300);
+                <\/script>
+              </body></html>
+            `);
+
+            win.document.close();
+        }
+
+        // Save to Sheets + Drive
+        saveToSheet(photoData);
+
+        // Mark old
+        isNewPhoto = false;
 
     }, 300);
-  });
+});
+
 
   /* PRINT */
   q("printBtn").addEventListener("click", () => {
