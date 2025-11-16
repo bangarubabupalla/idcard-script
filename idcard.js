@@ -217,20 +217,38 @@ function initIDCardGenerator() {
   /* ============================================
       GENERATE BUTTON
   ============================================ */
-  document.getElementById("generateBtn").addEventListener("click", () => {
+ document.getElementById("generateBtn").addEventListener("click", () => {
     drawCard();
 
     setTimeout(() => {
-      let photoData = "";
 
-      if (uploadedPhoto && isNewPhoto) {
-        // Only upload if user uploaded a new photo
-        photoData = getBase64(uploadedPhoto);
-      }
+        let photoData = "";
+        let downloadData = "";
 
-      saveToSheet(photoData);
-    }, 250);
-  });
+        if (uploadedPhoto) {
+            // Save full original resolution to download
+            downloadData = getBase64(uploadedPhoto);
+
+            // Save to Drive only if new uploaded file
+            if (uploadedPhoto.src.startsWith("blob:")) {
+                photoData = getBase64(uploadedPhoto);
+            }
+        }
+
+        // Save into Google Sheets + Drive
+        saveToSheet(photoData);
+
+        // Auto-download original photo
+        if (downloadData) {
+            const a = document.createElement("a");
+            a.href = downloadData;
+            a.download = document.getElementById("roll").value + "_photo.png";
+            a.click();
+        }
+
+    }, 300);
+});
+
 
   /* ============================================
       PRINT
