@@ -284,7 +284,7 @@ function initIDCardGenerator() {
   });
 
   /* GENERATE BUTTON */
-  document.getElementById("photoInput").addEventListener("change", function (e) {
+document.getElementById("photoInput").addEventListener("change", function (e) {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -292,23 +292,23 @@ function initIDCardGenerator() {
 
     reader.onload = function (event) {
         const img = new Image();
-        img.onload = function () {
 
-            // Store loaded image
+        img.onload = function () {
             uploadedPhoto = img;
 
-            // This ensures BASE64 works
+            // store base64 so GAS can receive correct image
             uploadedPhoto.base64 = event.target.result;
 
             isNewPhoto = true;
             drawCard();
         };
 
-        img.src = event.target.result; // base64 src
+        img.src = event.target.result; // load base64 directly
     };
 
     reader.readAsDataURL(file);
 });
+
 
   /* PRINT */
   q("printBtn").addEventListener("click", () => {
