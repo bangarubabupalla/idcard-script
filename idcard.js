@@ -284,26 +284,31 @@ function initIDCardGenerator() {
   });
 
   /* GENERATE BUTTON */
-  q("generateBtn").addEventListener("click", () => {
-    drawCard();
+  document.getElementById("photoInput").addEventListener("change", function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    setTimeout(() => {
-      let photoData = "";
-      let downloadData = "";
+    const reader = new FileReader();
 
-      if (uploadedPhoto && uploadedPhoto.src.startsWith("blob:")) {
-        photoData = getBase64(uploadedPhoto);
-        downloadData = photoData;
-      }
+    reader.onload = function (event) {
+        const img = new Image();
+        img.onload = function () {
 
-      saveToSheet(photoData);
+            // Store loaded image
+            uploadedPhoto = img;
 
-      if (downloadData) {
-        const roll = q("roll").value.trim() || "IDCARD";
-        triggerPhotoDownload(downloadData, roll);
-      }
-    }, 300);
-  });
+            // This ensures BASE64 works
+            uploadedPhoto.base64 = event.target.result;
+
+            isNewPhoto = true;
+            drawCard();
+        };
+
+        img.src = event.target.result; // base64 src
+    };
+
+    reader.readAsDataURL(file);
+});
 
   /* PRINT */
   q("printBtn").addEventListener("click", () => {
