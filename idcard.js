@@ -26,24 +26,6 @@ function checkRollExists(roll, cb) {
     .catch(() => cb(false));
 }
 
-/* ============================================
-   SAVE TO GOOGLE SHEET + DRIVE
-============================================ */
-function saveToSheet(photoBase64) {
-  const data = getData();
-  data.photoBase64 = photoBase64;
-
-  fetch(GAS_URL, {
-    method: "POST",
-    mode: "no-cors",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(data)
-  })
-    .then(() => console.log("Saved to Google Sheets (no-cors)."))
-    .catch((e) => console.log("ERR save:", e));
-}
 
 /* ============================================
    GET FORM DATA
