@@ -4,7 +4,7 @@
 const GAS_URL =
   "https://script.google.com/macros/s/AKfycbxgBHMWzOMlgOucyYEQFXWFoQ3oEMwpsIZjJHNx_w9cIIcU7TBe_icRyBsbIMO_qrf6/exec";
 
-/* Backgrounds */
+/* Background images */
 const BG_NIE = "https://iili.io/f9vffEv.png";
 const BG_NIST = "https://iili.io/f9vfC2p.png";
 const BG_OLD_NIE = "https://iili.io/fHuJnBS.png";
@@ -14,35 +14,42 @@ const BG_OLD_NIST = "https://iili.io/fHuqfSI.png";
 const photoNew = { x: 200, y: 220, width: 240, height: 240 };
 const photoOld = { x: 412, y: 266, width: 188, height: 240 };
 
-let uploadedPhoto = null;  // Image object
-let isNewPhoto = false;
+/* Global photo */
+let uploadedPhoto = null;
 
+/* Short alias */
 function q(id) { return document.getElementById(id); }
 
 /* ============================================
-   CHECK ROLL EXISTS
+   FIELD SWITCHING (Follows OLD GitHub behavior)
 ============================================ */
-function checkRollExists(roll, cb) {
-  fetch(GAS_URL + "?roll=" + encodeURIComponent(roll))
-    .then(r => r.json())
-    .then(j => cb(j.status === "found"))
-    .catch(() => cb(false));
+function updateCollegeFields() {
+  const col = q("collegeSelect").value;
+
+  if (col === "OLD_NIE" || col === "OLD_NIST") {
+    q("course").style.display = "none";
+    q("courseOld").style.display = "block";
+    q("blood").style.display = "block";
+  } else {
+    q("course").style.display = "block";
+    q("courseOld").style.display = "none";
+    q("blood").style.display = "none";
+  }
 }
 
 /* ============================================
-   GET FORM DATA
+   GET DATA
 ============================================ */
 function getData() {
-  const college = q("collegeSelect").value;
+  const col = q("collegeSelect").value;
 
   return {
-    college,
+    college: col,
     name: q("name").value.trim(),
     roll: q("roll").value.trim(),
-    course:
-      college === "OLD_NIE" || college === "OLD_NIST"
-        ? q("courseOld").value
-        : q("course").value,
+    course: (col === "OLD_NIE" || col === "OLD_NIST")
+      ? q("courseOld").value
+      : q("course").value,
     blood: q("blood").value.trim(),
     branch: q("branch").value.trim(),
     contact: q("contact").value.trim(),
@@ -52,29 +59,28 @@ function getData() {
 }
 
 /* ============================================
-   DRAW CARD
+   DRAW ID CARD
 ============================================ */
 function drawCard() {
   const canvas = q("idCanvas");
   const ctx = canvas.getContext("2d");
 
-  canvas.width = 638;
-  canvas.height = 1016;
-
   const d = getData();
 
+  /* SELECT BG */
   let bg = BG_NIE;
   if (d.college === "NIST") bg = BG_NIST;
   if (d.college === "OLD_NIE") bg = BG_OLD_NIE;
   if (d.college === "OLD_NIST") bg = BG_OLD_NIST;
 
+  /* Load BG */
   const bgImg = new Image();
   bgImg.crossOrigin = "anonymous";
 
   bgImg.onload = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Center-crop BG
+    /* center-cropped background fit */
     const scale = Math.max(canvas.width / bgImg.width, canvas.height / bgImg.height);
     const sw = canvas.width / scale;
     const sh = canvas.height / scale;
@@ -83,10 +89,10 @@ function drawCard() {
 
     ctx.drawImage(bgImg, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
-    // ============================
-    // TEXT LAYOUTS
-    // ============================
-    const layoutDefault = {
+    /* =============================
+       TEXT LAYOUT (same as GitHub)
+    ==============================*/
+    const layoutNew = {
       name: { x: 140, y: 512, font: "bold 34px Segoe UI", color: "#EB490E" },
       roll: { x: 250, y: 559, font: "bold 30px Segoe UI", color: "#EB490E" },
       course: { x: 170, y: 607, font: "bold 30px Segoe UI", color: "#EB490E" },
@@ -106,52 +112,48 @@ function drawCard() {
       parentContact: { x: 360, y: 772, font: "bold 32px Segoe UI", color: "#1B3A8A" }
     };
 
-    const layout = (d.college === "OLD_NIE" || d.college === "OLD_NIST")
+    const USE = (d.college === "OLD_NIE" || d.college === "OLD_NIST")
       ? layoutOld
-      : layoutDefault;
+      : layoutNew;
 
-    // ============================
-    // DRAW TEXT
-    // ============================
-    Object.keys(layout).forEach(k => {
-      const f = layout[k];
-      const val = d[k];
-      if (!val) return;
+    /* Draw text */
+    Object.keys(USE).forEach(key => {
+      if (!d[key]) return;
 
+      const f = USE[key];
       ctx.font = f.font;
       ctx.fillStyle = f.color;
 
       if (f.center) {
         ctx.textAlign = "center";
-        ctx.fillText(val, canvas.width / 2, f.y);
+        ctx.fillText(d[key], canvas.width / 2, f.y);
       } else {
         ctx.textAlign = "left";
-        ctx.fillText(val, f.x, f.y);
+        ctx.fillText(d[key], f.x, f.y);
       }
     });
 
-    // ============================
-    // PHOTO
-    // ============================
+    /* Draw photo */
     if (uploadedPhoto) {
-      const p = (d.college === "OLD_NIE" || d.college === "OLD_NIST")
+      const pos = (d.college === "OLD_NIE" || d.college === "OLD_NIST")
         ? photoOld
         : photoNew;
 
       ctx.save();
       ctx.beginPath();
-      ctx.rect(p.x, p.y, p.width, p.height);
+      ctx.rect(pos.x, pos.y, pos.width, pos.height);
       ctx.clip();
 
-      const iw = uploadedPhoto.width;
-      const ih = uploadedPhoto.height;
-      const scale = Math.max(p.width / iw, p.height / ih);
-      const sw2 = p.width / scale;
-      const sh2 = p.height / scale;
+      const iw = uploadedPhoto.width,
+            ih = uploadedPhoto.height;
+
+      const scale = Math.max(pos.width / iw, pos.height / ih);
+      const sw2 = pos.width / scale;
+      const sh2 = pos.height / scale;
       const sx2 = (iw - sw2) / 2;
       const sy2 = (ih - sh2) / 2;
 
-      ctx.drawImage(uploadedPhoto, sx2, sy2, sw2, sh2, p.x, p.y, p.width, p.height);
+      ctx.drawImage(uploadedPhoto, sx2, sy2, sw2, sh2, pos.x, pos.y, pos.width, pos.height);
       ctx.restore();
     }
   };
@@ -160,159 +162,112 @@ function drawCard() {
 }
 
 /* ============================================
-   SAVE TO GOOGLE SHEETS / DRIVE
-============================================ */
-function saveToSheet(photoBase64) {
-  const data = getData();
-  data.photoBase64 = photoBase64 || "";
-
-  fetch(GAS_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data)
-  }).catch(() => {});
-}
-
-/* ============================================
    PHOTO UPLOAD
 ============================================ */
-document.getElementById("photoInput").addEventListener("change", function (e) {
+q("photoInput").addEventListener("change", function(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  const reader = new FileReader();
-
-  reader.onload = function (event) {
+  const r = new FileReader();
+  r.onload = function(ev) {
     const img = new Image();
-    img.onload = function () {
+    img.onload = function() {
       uploadedPhoto = img;
-      uploadedPhoto.base64 = event.target.result;
-      isNewPhoto = true;
       drawCard();
     };
-    img.src = event.target.result;
+    img.src = ev.target.result;
   };
-
-  reader.readAsDataURL(file);
+  r.readAsDataURL(file);
 });
 
 /* ============================================
-   GENERATE BUTTON
+   PRINT FIX (always works)
 ============================================ */
-document.getElementById("generateBtn").addEventListener("click", () => {
+q("printBtn").onclick = () => {
   drawCard();
 
   setTimeout(() => {
-    let photoData = uploadedPhoto?.base64 || "";
-    saveToSheet(photoData);
+    const data = q("idCanvas").toDataURL("image/png");
+    const w = window.open("", "_blank", "width=600,height=800");
 
-    if (photoData) {
-      const roll = q("roll").value.trim() || "PHOTO";
-      const win = window.open("", "_blank");
-      win.document.write(`
-        <a id="dl" href="${photoData}" download="${roll}_photo.png"></a>
+    w.document.write(`
+      <html>
+      <body style="margin:0;padding:0;text-align:center;">
+        <img id="pImg" src="${data}" style="width:100%;max-width:600px;">
         <script>
-          document.getElementById('dl').click();
-          setTimeout(()=>window.close(),200);
+          const img=document.getElementById('pImg');
+          img.onload=function(){ setTimeout(()=>print(),300); };
         <\/script>
-      `);
-    }
+      </body>
+      </html>
+    `);
+
+    w.document.close();
   }, 300);
-});
+};
 
 /* ============================================
    PNG DOWNLOAD
 ============================================ */
-document.getElementById("downloadPngBtn").addEventListener("click", () => {
+q("downloadPngBtn").onclick = () => {
   drawCard();
   setTimeout(() => {
     const a = q("dlink");
-    a.href = q("idCanvas").toDataURL("image/png");
+    a.href = q("idCanvas").toDataURL();
     a.download = (q("roll").value || "IDCARD") + ".png";
     a.click();
-  }, 250);
-});
+  }, 300);
+};
 
 /* ============================================
    PDF DOWNLOAD
 ============================================ */
-document.getElementById("downloadPdfBtn").addEventListener("click", () => {
+q("downloadPdfBtn").onclick = () => {
   drawCard();
-
   setTimeout(() => {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF("p", "pt", "a4");
-
     const img = q("idCanvas").toDataURL("image/png");
-    const pw = pdf.internal.pageSize.getWidth() - 80;
-    const ph = pdf.internal.pageSize.getHeight() - 80;
 
-    const scale = Math.min(pw / 638, ph / 1016);
-    const w = 638 * scale;
-    const h = 1016 * scale;
-    const x = (pdf.internal.pageSize.getWidth() - w) / 2;
-
-    pdf.addImage(img, "PNG", x, 40, w, h);
+    pdf.addImage(img, "PNG", 20, 20, 400, 640);
     pdf.save((q("roll").value || "IDCARD") + ".pdf");
-  }, 300);
-});
+  }, 350);
+};
 
 /* ============================================
-   PRINT
+   RESET
 ============================================ */
-document.getElementById("printBtn").addEventListener("click", () => {
-  drawCard();
+q("resetBtn").onclick = () => {
+  document.querySelectorAll("#idcard-widget-container input")
+    .forEach(i => i.value = "");
 
-  setTimeout(() => {
-    const img = q("idCanvas").toDataURL("image/png");
-    const w = window.open("", "_blank");
-    w.document.write(`<img src="${img}" style="width:100%">`);
-    w.print();
-  }, 300);
-});
-
-/* ============================================
-   FETCH RECORD
-============================================ */
-function fetchRecord() {
-  const roll = q("roll").value.trim();
-  if (!roll) return alert("Enter Roll Number");
-
-  fetch(GAS_URL + "?roll=" + encodeURIComponent(roll))
-    .then(r => r.json())
-    .then(data => {
-      if (data.status !== "found") return alert("No record found");
-
-      q("name").value = data.name;
-      q("contact").value = data.contact;
-      q("parentName").value = data.parentName;
-      q("parentContact").value = data.parentContact;
-      q("branch").value = data.branch;
-      q("blood").value = data.blood;
-      q("collegeSelect").value = data.college;
-
-      if (data.college === "OLD_NIE" || data.college === "OLD_NIST")
-        q("courseOld").value = data.course;
-      else
-        q("course").value = data.course;
-
-      if (data.photo) {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => {
-          uploadedPhoto = img;
-          drawCard();
-        };
-        img.src = data.photo;
-      }
-
-      drawCard();
-    });
-}
-
-/* ============================================
-   EXPORT INIT FUNCTION
-============================================ */
-window.initIDCardGenerator = function () {
+  uploadedPhoto = null;
   drawCard();
 };
+
+/* ============================================
+   LIVE PREVIEW
+============================================ */
+[
+  "name", "roll", "branch", "contact",
+  "parentName", "parentContact", "blood"
+].forEach(id => {
+  q(id).addEventListener("input", drawCard);
+});
+
+["collegeSelect", "course", "courseOld"]
+  .forEach(id => q(id).addEventListener("change", () => {
+    updateCollegeFields();
+    drawCard();
+  }));
+
+/* ============================================
+   EXPORT drawIDCard FOR HTML
+============================================ */
+window.drawIDCard = drawCard;
+
+/* ============================================
+   INITIALIZE
+============================================ */
+updateCollegeFields();
+drawCard();
