@@ -1,16 +1,16 @@
 /* ============================================
-   CONFIG
+   GOOGLE APPS SCRIPT URL
 ============================================ */
 const GAS_URL =
   "https://script.google.com/macros/s/AKfycbxgBHMWzOMlgOucyYEQFXWFoQ3oEMwpsIZjJHNx_w9cIIcU7TBe_icRyBsbIMO_qrf6/exec";
 
-/* Backgrounds */
+/* BACKGROUND IMAGES (original) */
 const BG_NIE = "https://iili.io/f9vffEv.png";
 const BG_NIST = "https://iili.io/f9vfC2p.png";
 const BG_OLD_NIE = "https://iili.io/fHuJnBS.png";
 const BG_OLD_NIST = "https://iili.io/fHuqfSI.png";
 
-/* Photo positions */
+/* PHOTO POSITIONS (original) */
 const photoNew = { x: 200, y: 220, width: 240, height: 240 };
 const photoOld = { x: 412, y: 266, width: 188, height: 240 };
 
@@ -19,26 +19,33 @@ let uploadedPhoto = null;
 function q(id) { return document.getElementById(id); }
 
 /* ============================================
-   FIELD SWITCHING (BRANCH removed for old)
+   FIELD SWITCHING (ONLY CHANGE: hide BRANCH)
 ============================================ */
 function updateCollegeFields() {
+
   const col = q("collegeSelect").value;
 
   if (col === "OLD_NIE" || col === "OLD_NIST") {
+
     q("course").style.display = "none";
     q("courseOld").style.display = "block";
     q("blood").style.display = "block";
-    q("branch").style.display = "none";    // ❌ BRANCH HIDDEN
+
+    q("branch").style.display = "none";      // ❗ BRANCH HIDDEN
+
   } else {
+
     q("course").style.display = "block";
     q("courseOld").style.display = "none";
     q("blood").style.display = "none";
-    q("branch").style.display = "block";   // ✔ BRANCH VISIBLE
+
+    q("branch").style.display = "block";     // ✔ BRANCH VISIBLE
+
   }
 }
 
 /* ============================================
-   DATA BUILDER  (BRANCH removed when old)
+   GET ALL FORM DATA
 ============================================ */
 function getData() {
   const col = q("collegeSelect").value;
@@ -47,15 +54,16 @@ function getData() {
     college: col,
     name: q("name").value.trim(),
     roll: q("roll").value.trim(),
-    course:
-      col === "OLD_NIE" || col === "OLD_NIST"
-        ? q("courseOld").value
-        : q("course").value,
+
+    course: (col === "OLD_NIE" || col === "OLD_NIST")
+      ? q("courseOld").value
+      : q("course").value,
+
     blood: q("blood").value.trim(),
-    branch:
-      col === "OLD_NIE" || col === "OLD_NIST"
-        ? ""                // ❌ NO BRANCH FOR OLD
-        : q("branch").value.trim(),
+
+    branch: (col === "OLD_NIE" || col === "OLD_NIST")
+      ? "" // ❗ Old college → no branch
+      : q("branch").value.trim(),
 
     contact: q("contact").value.trim(),
     parentName: q("parentName").value.trim(),
@@ -64,59 +72,65 @@ function getData() {
 }
 
 /* ============================================
-   DRAW CARD  (BRANCH removed when old)
+   DRAW CARD (ORIGINAL LAYOUTS)
 ============================================ */
 function drawCard() {
   const c = q("idCanvas");
   const ctx = c.getContext("2d");
   const d = getData();
 
+  /* Select BG */
   let bg = BG_NIE;
   if (d.college === "NIST") bg = BG_NIST;
   if (d.college === "OLD_NIE") bg = BG_OLD_NIE;
   if (d.college === "OLD_NIST") bg = BG_OLD_NIST;
 
-  const img = new Image();
-  img.crossOrigin = "anonymous";
+  const bgImg = new Image();
+  bgImg.crossOrigin = "anonymous";
 
-  img.onload = () => {
+  bgImg.onload = () => {
+
     ctx.clearRect(0, 0, c.width, c.height);
 
-    const scale = Math.max(c.width / img.width, c.height / img.height);
+    // Center crop BG
+    const scale = Math.max(c.width / bgImg.width, c.height / bgImg.height);
     const sw = c.width / scale;
     const sh = c.height / scale;
-    const sx = (img.width - sw) / 2;
-    const sy = (img.height - sh) / 2;
+    const sx = (bgImg.width - sw) / 2;
+    const sy = (bgImg.height - sh) / 2;
 
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    ctx.drawImage(bgImg, sx, sy, sw, sh, 0, 0, c.width, c.height);
 
+    /* ORIGINAL NEW COLLEGE LAYOUT */
     const New = {
-      name: { x: 140, y: 512, color: "#EB490E", font: "bold 34px Segoe UI" },
-      roll: { x: 250, y: 559, color: "#EB490E", font: "bold 30px Segoe UI" },
-      course: { x: 170, y: 607, color: "#EB490E", font: "bold 30px Segoe UI" },
-      branch: { x: 180, y: 655, color: "#EB490E", font: "bold 30px Segoe UI" },
-      contact: { x: 255, y: 700, color: "#EB490E", font: "bold 30px Segoe UI" },
-      parentName: { x: 262, y: 752, color: "#EB490E", font: "bold 30px Segoe UI" },
-      parentContact: { x: 365, y: 802, color: "#EB490E", font: "bold 32px Segoe UI" }
+      name: { x: 140, y: 512, font: "bold 34px Segoe UI", color: "#EB490E" },
+      roll: { x: 250, y: 559, font: "bold 30px Segoe UI", color: "#EB490E" },
+      course: { x: 170, y: 607, font: "bold 30px Segoe UI", color: "#EB490E" },
+      branch: { x: 180, y: 655, font: "bold 30px Segoe UI", color: "#EB490E" },
+      contact: { x: 255, y: 700, font: "bold 30px Segoe UI", color: "#EB490E" },
+      parentName: { x: 262, y: 752, font: "bold 30px Segoe UI", color: "#EB490E" },
+      parentContact: { x: 365, y: 802, font: "bold 32px Segoe UI", color: "#EB490E" }
     };
 
+    /* ORIGINAL OLD COLLEGE LAYOUT */
     const Old = {
-      roll: { x: 170, y: 331, color: "#1B3A8A", font: "bold 32px Segoe UI" },
-      course: { x: 150, y: 373, color: "#1B3A8A", font: "bold 32px Segoe UI" },
-      blood: { x: 220, y: 416, color: "#1B3A8A", font: "bold 32px Segoe UI" },
-      name: { y: 590, center: true, color: "#F02424", font: "bold 37px Segoe UI" },
-      parentName: { x: 250, y: 665, color: "#1B3A8A", font: "bold 32px Segoe UI" },
-      contact: { x: 240, y: 721, color: "#1B3A8A", font: "bold 32px Segoe UI" },
-      parentContact: { x: 360, y: 772, color: "#1B3A8A", font: "bold 32px Segoe UI" }
+      roll: { x: 170, y: 331, font: "bold 32px Segoe UI", color: "#1B3A8A" },
+      course: { x: 150, y: 373, font: "bold 32px Segoe UI", color: "#1B3A8A" },
+      blood: { x: 220, y: 416, font: "bold 32px Segoe UI", color: "#1B3A8A" },
+      name: { center: true, y: 590, font: "bold 37px Segoe UI", color: "#F02424" },
+      parentName: { x: 250, y: 665, font: "bold 32px Segoe UI", color: "#1B3A8A" },
+      contact: { x: 240, y: 721, font: "bold 32px Segoe UI", color: "#1B3A8A" },
+      parentContact: { x: 360, y: 772, font: "bold 32px Segoe UI", color: "#1B3A8A" }
     };
 
-    const L = d.college === "OLD_NIE" || d.college === "OLD_NIST" ? Old : New;
+    const layout =
+      d.college === "OLD_NIE" || d.college === "OLD_NIST" ? Old : New;
 
-    /* DRAW TEXT */
-    for (let k in L) {
-      const f = L[k];
-      if (!d[k]) continue;
+    /* Draw each text element */
+    Object.keys(layout).forEach(k => {
+      if (!d[k]) return;
 
+      const f = layout[k];
       ctx.font = f.font;
       ctx.fillStyle = f.color;
 
@@ -127,9 +141,9 @@ function drawCard() {
         ctx.textAlign = "left";
         ctx.fillText(d[k], f.x, f.y);
       }
-    }
+    });
 
-    /* DRAW PHOTO */
+    /* Draw Photo */
     if (uploadedPhoto) {
       const p =
         d.college === "OLD_NIE" || d.college === "OLD_NIST"
@@ -141,29 +155,31 @@ function drawCard() {
       ctx.rect(p.x, p.y, p.width, p.height);
       ctx.clip();
 
-      const iw = uploadedPhoto.width,
-        ih = uploadedPhoto.height;
-      const sc = Math.max(p.width / iw, p.height / ih);
-      const sw2 = p.width / sc,
-        sh2 = p.height / sc;
-      const sx2 = (iw - sw2) / 2,
-        sy2 = (ih - sh2) / 2;
+      const iw = uploadedPhoto.width;
+      const ih = uploadedPhoto.height;
+      const scale = Math.max(p.width / iw, p.height / ih);
+      const sw2 = p.width / scale;
+      const sh2 = p.height / scale;
+      const sx2 = (iw - sw2) / 2;
+      const sy2 = (ih - sh2) / 2;
 
       ctx.drawImage(uploadedPhoto, sx2, sy2, sw2, sh2, p.x, p.y, p.width, p.height);
       ctx.restore();
     }
   };
 
-  img.src = bg;
+  bgImg.src = bg;
 }
 
-/* ========== PHOTO UPLOAD ========== */
+/* ============================================
+   PHOTO UPLOAD (original)
+============================================ */
 q("photoInput").addEventListener("change", e => {
-  const f = e.target.files[0];
-  if (!f) return;
+  const file = e.target.files[0];
+  if (!file) return;
 
-  const r = new FileReader();
-  r.onload = ev => {
+  const reader = new FileReader();
+  reader.onload = ev => {
     const img = new Image();
     img.onload = () => {
       uploadedPhoto = img;
@@ -172,15 +188,17 @@ q("photoInput").addEventListener("change", e => {
     };
     img.src = ev.target.result;
   };
-  r.readAsDataURL(f);
+  reader.readAsDataURL(file);
 });
 
-/* ========== SAVE (to Sheets + Drive) ========== */
+/* ============================================
+   SAVE TO GOOGLE SHEETS (original)
+============================================ */
 function saveToSheet() {
-  const d = getData();
+  const data = getData();
 
   const payload = {
-    ...d,
+    ...data,
     photoBase64: uploadedPhoto ? uploadedPhoto.base64 : ""
   };
 
@@ -194,32 +212,32 @@ function saveToSheet() {
     .catch(() => alert("Save failed"));
 }
 
-/* ========== FETCH RECORD ========== */
+/* ============================================
+   FETCH RECORD (original)
+============================================ */
 function fetchRecord() {
   const roll = q("roll").value.trim();
-  if (!roll) return alert("Enter Roll Number");
+  if (!roll) return alert("Enter roll number");
 
   fetch(GAS_URL + "?roll=" + encodeURIComponent(roll))
     .then(r => r.json())
     .then(j => {
-      if (j.status !== "found") return alert("Not found");
+      if (j.status !== "found") return alert("No record found");
 
       q("name").value = j.name;
       q("contact").value = j.contact;
       q("parentName").value = j.parentName;
       q("parentContact").value = j.parentContact;
       q("blood").value = j.blood;
-
       q("collegeSelect").value = j.college;
 
-      if (j.college === "OLD_NIE" || j.college === "OLD_NIST")
+      if (j.college === "OLD_NIE" || j.college === "OLD_NIST") {
         q("courseOld").value = j.course;
-      else
+        q("branch").value = "";   // ❗ no branch for old
+      } else {
         q("course").value = j.course;
-
-      if (j.college === "OLD_NIE" || j.college === "OLD_NIST")
-        q("branch").value = ""; // ❌ Old colleges have no branch
-      else q("branch").value = j.branch;
+        q("branch").value = j.branch;
+      }
 
       if (j.photo) {
         const img = new Image();
@@ -236,17 +254,18 @@ function fetchRecord() {
     });
 }
 
-/* ========== PRINT FIX ========== */
+/* ========== PRINT BUTTON (original fix) ========== */
 q("printBtn").onclick = () => {
   drawCard();
   setTimeout(() => {
+    const data = q("idCanvas").toDataURL("image/png");
     const w = window.open("");
-    w.document.write(`<img src="${q("idCanvas").toDataURL()}" style="width:100%;max-width:600px">`);
+    w.document.write(`<img src="${data}" style="width:100%;max-width:600px">`);
     w.print();
   }, 300);
 };
 
-/* ========== PNG, PDF, RESET, PREVIEW ========== */
+/* PNG, PDF, RESET unchanged */
 q("downloadPngBtn").onclick = () => {
   drawCard();
   setTimeout(() => {
@@ -271,23 +290,23 @@ q("generateBtn").onclick = saveToSheet;
 
 q("resetBtn").onclick = () => {
   document.querySelectorAll("#idcard-widget-container input")
-    .forEach(e => (e.value = ""));
+    .forEach(i => (i.value = ""));
   uploadedPhoto = null;
   drawCard();
 };
 
-["name","roll","branch","contact","parentName","parentContact","blood"].forEach(id => {
-  q(id).addEventListener("input", drawCard);
-});
+["name","roll","branch","contact","parentName","parentContact","blood"]
+  .forEach(id => q(id).addEventListener("input", drawCard));
 
-["collegeSelect","course","courseOld"].forEach(id => {
-  q(id).addEventListener("change", () => {
+["collegeSelect","course","courseOld"]
+  .forEach(id => q(id).addEventListener("change", () => {
     updateCollegeFields();
     drawCard();
-  });
-});
+  }));
 
+/* EXPORT */
 window.drawIDCard = drawCard;
 
+/* INIT */
 updateCollegeFields();
 drawCard();
