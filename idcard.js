@@ -15,12 +15,12 @@ const photoNew = { x: 200, y: 220, width: 240, height: 240 };
 const photoOld = { x: 412, y: 266, width: 188, height: 240 };
 
 let uploadedPhoto = null;  // Image object
-let isNewPhoto = false;    // TRUE only when user uploads new image
+let isNewPhoto = false;
 
 function q(id) { return document.getElementById(id); }
 
 /* ============================================
-   CHECK ROLL
+   CHECK ROLL EXISTS
 ============================================ */
 function checkRollExists(roll, cb) {
   fetch(GAS_URL + "?roll=" + encodeURIComponent(roll))
@@ -30,7 +30,7 @@ function checkRollExists(roll, cb) {
 }
 
 /* ============================================
-   GET DATA
+   GET FORM DATA
 ============================================ */
 function getData() {
   const college = q("collegeSelect").value;
@@ -54,9 +54,6 @@ function getData() {
 /* ============================================
    DRAW CARD
 ============================================ */
-if (window.livePhoto) {
-   photo = await loadImage(window.livePhoto);
-}
 function drawCard() {
   const canvas = q("idCanvas");
   const ctx = canvas.getContext("2d");
@@ -77,6 +74,7 @@ function drawCard() {
   bgImg.onload = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Center-crop BG
     const scale = Math.max(canvas.width / bgImg.width, canvas.height / bgImg.height);
     const sw = canvas.width / scale;
     const sh = canvas.height / scale;
@@ -85,6 +83,9 @@ function drawCard() {
 
     ctx.drawImage(bgImg, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
+    // ============================
+    // TEXT LAYOUTS
+    // ============================
     const layoutDefault = {
       name: { x: 140, y: 512, font: "bold 34px Segoe UI", color: "#EB490E" },
       roll: { x: 250, y: 559, font: "bold 30px Segoe UI", color: "#EB490E" },
@@ -109,6 +110,9 @@ function drawCard() {
       ? layoutOld
       : layoutDefault;
 
+    // ============================
+    // DRAW TEXT
+    // ============================
     Object.keys(layout).forEach(k => {
       const f = layout[k];
       const val = d[k];
@@ -120,14 +124,19 @@ function drawCard() {
       if (f.center) {
         ctx.textAlign = "center";
         ctx.fillText(val, canvas.width / 2, f.y);
-        ctx.textAlign = "start";
       } else {
+        ctx.textAlign = "left";
         ctx.fillText(val, f.x, f.y);
       }
     });
 
+    // ============================
+    // PHOTO
+    // ============================
     if (uploadedPhoto) {
-      const p = (d.college === "OLD_NIE" || d.college === "OLD_NIST") ? photoOld : photoNew;
+      const p = (d.college === "OLD_NIE" || d.college === "OLD_NIST")
+        ? photoOld
+        : photoNew;
 
       ctx.save();
       ctx.beginPath();
@@ -151,7 +160,7 @@ function drawCard() {
 }
 
 /* ============================================
-   SAVE TO SHEETS / DRIVE
+   SAVE TO GOOGLE SHEETS / DRIVE
 ============================================ */
 function saveToSheet(photoBase64) {
   const data = getData();
@@ -161,18 +170,11 @@ function saveToSheet(photoBase64) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
-  })
-    .then(r => r.json().catch(() => ({})))
-    .then(() => {
-      isNewPhoto = false;
-    })
-    .catch(() => {
-      isNewPhoto = false;
-    });
+  }).catch(() => {});
 }
 
 /* ============================================
-   PHOTO UPLOAD HANDLER
+   PHOTO UPLOAD
 ============================================ */
 document.getElementById("photoInput").addEventListener("change", function (e) {
   const file = e.target.files[0];
@@ -184,7 +186,7 @@ document.getElementById("photoInput").addEventListener("change", function (e) {
     const img = new Image();
     img.onload = function () {
       uploadedPhoto = img;
-      uploadedPhoto.base64 = event.target.result; // REQUIRED
+      uploadedPhoto.base64 = event.target.result;
       isNewPhoto = true;
       drawCard();
     };
@@ -195,43 +197,31 @@ document.getElementById("photoInput").addEventListener("change", function (e) {
 });
 
 /* ============================================
-   GENERATE BUTTON — SAVE + AUTO-DOWNLOAD PHOTO
+   GENERATE BUTTON
 ============================================ */
 document.getElementById("generateBtn").addEventListener("click", () => {
   drawCard();
 
   setTimeout(() => {
-    let photoData = "";
-    let downloadData = "";
-
-    if (uploadedPhoto && uploadedPhoto.base64) {
-      photoData = uploadedPhoto.base64;
-      downloadData = uploadedPhoto.base64;
-    }
-
+    let photoData = uploadedPhoto?.base64 || "";
     saveToSheet(photoData);
 
-    if (downloadData) {
+    if (photoData) {
       const roll = q("roll").value.trim() || "PHOTO";
-      const fileName = roll + "_photo.png";
-
       const win = window.open("", "_blank");
       win.document.write(`
-        <html><body>
-          <a id="dl" href="${downloadData}" download="${fileName}"></a>
-          <script>
-            document.getElementById('dl').click();
-            setTimeout(() => window.close(), 200);
-          <\/script>
-        </body></html>
+        <a id="dl" href="${photoData}" download="${roll}_photo.png"></a>
+        <script>
+          document.getElementById('dl').click();
+          setTimeout(()=>window.close(),200);
+        <\/script>
       `);
-      win.document.close();
     }
   }, 300);
 });
 
 /* ============================================
-   PNG / PDF / PRINT handlers
+   PNG DOWNLOAD
 ============================================ */
 document.getElementById("downloadPngBtn").addEventListener("click", () => {
   drawCard();
@@ -240,18 +230,23 @@ document.getElementById("downloadPngBtn").addEventListener("click", () => {
     a.href = q("idCanvas").toDataURL("image/png");
     a.download = (q("roll").value || "IDCARD") + ".png";
     a.click();
-  }, 300);
+  }, 250);
 });
 
+/* ============================================
+   PDF DOWNLOAD
+============================================ */
 document.getElementById("downloadPdfBtn").addEventListener("click", () => {
   drawCard();
+
   setTimeout(() => {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF("p", "pt", "a4");
-    const img = q("idCanvas").toDataURL("image/png");
 
+    const img = q("idCanvas").toDataURL("image/png");
     const pw = pdf.internal.pageSize.getWidth() - 80;
     const ph = pdf.internal.pageSize.getHeight() - 80;
+
     const scale = Math.min(pw / 638, ph / 1016);
     const w = 638 * scale;
     const h = 1016 * scale;
@@ -259,24 +254,21 @@ document.getElementById("downloadPdfBtn").addEventListener("click", () => {
 
     pdf.addImage(img, "PNG", x, 40, w, h);
     pdf.save((q("roll").value || "IDCARD") + ".pdf");
-  }, 350);
+  }, 300);
 });
 
 /* ============================================
-   PRINT HANDLER
+   PRINT
 ============================================ */
-document.getElementById("printBtn").addEventListener("click", async () => {
+document.getElementById("printBtn").addEventListener("click", () => {
   drawCard();
+
   setTimeout(() => {
     const img = q("idCanvas").toDataURL("image/png");
-    const win = window.open("", "_blank");
-    win.document.write(`
-      <img id="p" src="${img}" style="width:100%;max-width:800px;">
-      <script>
-        p.onload = () => { window.print(); setTimeout(()=>window.close(),500); };
-      <\/script>
-    `);
-  }, 350);
+    const w = window.open("", "_blank");
+    w.document.write(`<img src="${img}" style="width:100%">`);
+    w.print();
+  }, 300);
 });
 
 /* ============================================
@@ -297,7 +289,6 @@ function fetchRecord() {
       q("parentContact").value = data.parentContact;
       q("branch").value = data.branch;
       q("blood").value = data.blood;
-
       q("collegeSelect").value = data.college;
 
       if (data.college === "OLD_NIE" || data.college === "OLD_NIST")
@@ -310,17 +301,18 @@ function fetchRecord() {
         img.crossOrigin = "anonymous";
         img.onload = () => {
           uploadedPhoto = img;
-          isNewPhoto = false;
           drawCard();
         };
         img.src = data.photo;
       }
 
-      q("fetchBtn").style.display = "block";
       drawCard();
     });
 }
 
+/* ============================================
+   EXPORT INIT FUNCTION
+============================================ */
 window.initIDCardGenerator = function () {
   drawCard();
 };
