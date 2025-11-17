@@ -2,7 +2,7 @@
    CONFIG
 ============================================ */
 const GAS_URL =
-  "https://script.google.com/macros/s/AKfycbxgBHMWzOMlgOucyYEQFXWFoQ3oEMwpsIZjJHNx_w9cIIcU7TBe_icRyBsbIMO_qrf6/exec";
+  "https://script.google.com/macros/s/AKfycbwFeYUQTaW-xo_aznE0ImujW_T4p4589_AFqG9E1PzduIbwQaA1R3YEmNxEcwyp0RLD/exec";
 
 /* Backgrounds */
 const BG_NIE = "https://iili.io/f9vffEv.png";
